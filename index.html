@@ -713,7 +713,7 @@ const ACH={
 
 // API Helper (for stats only)
 const TOKEN_KEY='shootout_token';
-async function api(endpoint,method='GET',data=null){try{const opt={method,headers:{'Content-Type':'application/json'}};const token=localStorage.getItem(TOKEN_KEY);if(token)opt.headers['Authorization']='Bearer '+token;if(data)opt.body=JSON.stringify(data);const r=await fetch(API_URL+endpoint,opt);if(r.status===401&&!endpoint.includes('/login')&&!endpoint.includes('/register')){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(S);alert('Session expired. Please log in again.');show(loginScreen());return null;}return await r.json();}catch(e){console.error('API:',e);return null;}}
+async function api(endpoint,method='GET',data=null){try{const opt={method,headers:{'Content-Type':'application/json'}};const token=localStorage.getItem(TOKEN_KEY);if(token)opt.headers['Authorization']='Bearer '+token;if(data)opt.body=JSON.stringify(data);const r=await fetch(API_URL+endpoint,opt);if(r.status===401&&!endpoint.includes('/login')&&!endpoint.includes('/register')&&!endpoint.includes('/stats')){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(S);alert('Session expired. Please log in again.');show(loginScreen());return null;}return await r.json();}catch(e){console.error('API:',e);return null;}}
 
 // Auth
 async function doLogin(){const un=document.getElementById('usernameInput').value.trim();const pw=document.getElementById('passwordInput').value.trim();if(!un||!pw){alert('Enter username and password!');return;}
