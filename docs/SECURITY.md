@@ -11,6 +11,7 @@ Security implementation details and anti-cheat architecture.
 2. **Action spoofing** - Submitting invalid actions
 3. **State manipulation** - Modifying bullets, rounds, winner
 4. **Impersonation** - Acting as another player
+5. **Non-participants** - Modifying games they're not in
 
 ### What We Accept (Current Architecture)
 - Sophisticated attackers with deep Firebase knowledge
@@ -32,38 +33,48 @@ Location: `database.rules.json`
 ```json
 {
   "rules": {
-    "pvp_games": {
+    "games": {
       "$gameId": {
-        // Must be authenticated
-        ".read": "auth != null",
-        ".write": "auth != null",
-
-        // Host slot - only host UID can write
-        "host": {
-          ".write": "data.child('uid').val() == auth.uid || !data.exists()",
-          "action": {
-            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
-          },
-          "bullets": {
-            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
-          }
+        ".read": true,
+        ".write": "auth != null && (
+          !data.exists() ||
+          data.child('p1_uid').val() == auth.uid ||
+          data.child('p2_uid').val() == auth.uid ||
+          (data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid)
+        )",
+        "p1_action": {
+          ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
         },
-
-        // Guest slot - only guest UID can write
-        "guest": {
-          ".write": "data.child('uid').val() == auth.uid || !data.exists()",
-          "action": {
-            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
-          },
-          "bullets": {
-            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
-          }
+        "p2_action": {
+          ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
+        },
+        "p1_bullets": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
+        },
+        "p2_bullets": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
+        },
+        "round": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 13"
+        },
+        "status": {
+          ".validate": "newData.val() == 'WAITING' || newData.val() == 'PLAYING' || newData.val() == 'FINISHED'"
         }
       }
+    },
+    "leaderboard": {
+      ".read": true,
+      ".write": false
     }
   }
 }
 ```
+
+**Write Rules Explained:**
+- `!data.exists()` - Anyone authenticated can create a new game
+- `data.child('p1_uid').val() == auth.uid` - Host can modify their game
+- `data.child('p2_uid').val() == auth.uid` - Guest can modify their game
+- `data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid` - Anyone can join an open game
 
 ### Layer 3: Client-Side Validation
 - Input sanitization
@@ -75,6 +86,10 @@ Location: `database.rules.json`
 - Password hashing (SHA-256)
 - Input validation on all endpoints
 
+### Layer 5: localStorage Security
+- Only username stored for convenience (not password)
+- Password must be entered on each session
+
 ---
 
 ## What Security Rules Prevent
@@ -82,10 +97,12 @@ Location: `database.rules.json`
 | Attack | Prevention |
 |--------|------------|
 | Submit action as opponent | UID check on write |
+| Modify someone else's game | Participant check on write |
 | Invalid action value (e.g., 5) | Range validation (0-2) |
 | Invalid bullet count (e.g., 100) | Range validation (0-6) |
+| Invalid round number | Range validation (1-13) |
+| Invalid status value | Enum validation |
 | Unauthenticated writes | `auth != null` requirement |
-| Read other games without auth | Read rules |
 
 ## What Security Rules Cannot Prevent
 
@@ -111,7 +128,8 @@ Current status: Code ready, blocked by payment processing.
 ## API Security
 
 ### Password Storage
-- SHA-256 hashed (not plaintext)
+- SHA-256 hashed (not plaintext) on server
+- Passwords NOT stored in localStorage (security fix Jan 2026)
 - Future: Consider bcrypt for better security
 
 ### CORS
@@ -128,14 +146,42 @@ Current status: Code ready, blocked by payment processing.
 ## Security Checklist
 
 - [x] Firebase Anonymous Auth enabled
-- [x] Security Rules deployed
+- [x] Security Rules deployed with participant checks
 - [x] Action values validated (0-2)
 - [x] Bullet counts validated (0-6)
+- [x] Round numbers validated (1-13)
+- [x] Status values validated (WAITING/PLAYING/FINISHED)
 - [x] UID verification on writes
+- [x] Non-participant writes blocked
 - [x] XSS prevention
-- [x] Password hashing
+- [x] Password hashing on server
+- [x] Password NOT stored in localStorage
 - [ ] Cloud Functions (pending Blaze)
 - [ ] Rate limiting (not currently implemented)
+- [ ] bcrypt password hashing
+
+---
+
+## Security Audit (Jan 2026)
+
+### Vulnerabilities Identified: 26
+- CRITICAL: 9
+- HIGH: 7
+- MEDIUM: 6
+- LOW: 4
+
+### Fixed in This Update
+1. Firebase Security Rules tightened (non-participants blocked)
+2. Plaintext password removed from localStorage
+3. All field validations added to rules
+
+### Remaining Issues (Prioritized)
+1. Stats API authentication (anyone can spoof stats)
+2. bcrypt for password hashing
+3. Rate limiting on API
+4. CORS restrictions
+
+See `.claude/plans/` for full security audit details.
 
 ---
 

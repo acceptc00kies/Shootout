@@ -1,8 +1,48 @@
 {
   "rules": {
     "games": {
-      ".read": true,
-      ".write": "auth != null"
+      "$gameId": {
+        ".read": true,
+        ".write": "auth != null && (
+          !data.exists() ||
+          data.child('p1_uid').val() == auth.uid ||
+          data.child('p2_uid').val() == auth.uid ||
+          (data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid)
+        )",
+        "p1_action": {
+          ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
+        },
+        "p2_action": {
+          ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
+        },
+        "p1_bullets": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
+        },
+        "p2_bullets": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
+        },
+        "round": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 13"
+        },
+        "status": {
+          ".validate": "newData.val() == 'WAITING' || newData.val() == 'PLAYING' || newData.val() == 'FINISHED'"
+        },
+        "p1_uid": {
+          ".validate": "newData.isString()"
+        },
+        "p2_uid": {
+          ".validate": "newData.val() == null || newData.isString()"
+        },
+        "winner": {
+          ".validate": "newData.val() == null || newData.val() == 'p1' || newData.val() == 'p2' || newData.val() == 'draw'"
+        },
+        "winner_uid": {
+          ".validate": "newData.val() == null || newData.isString()"
+        },
+        "created": {
+          ".validate": "newData.isNumber()"
+        }
+      }
     },
     "leaderboard": {
       ".read": true,

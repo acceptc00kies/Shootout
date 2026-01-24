@@ -721,7 +721,7 @@ show(`<div class="card" style="text-align:center;padding:40px"><div style="font-
 let result=await api('/api/login','POST',{username:un,password:pw});
 if(!result||result.error){result=await api('/api/register','POST',{username:un,password:pw});if(result&&result.success){alert('✅ Account created!');}else{alert('❌ '+(result?.error||'Connection failed'));show(loginScreen());return;}}
 const stats=await api('/api/stats/'+un);user={username:un,...stats};if(!user.ai_stats)user.ai_stats={};if(!user.achievements)user.achievements=[];if(!user.pvp)user.pvp={wins:0,losses:0,draws:0,games:0,streak:0,best_streak:0};
-localStorage.setItem(S,JSON.stringify({un,pw}));menu();}
+localStorage.setItem(S,JSON.stringify({un}));menu();}
 
 function loginScreen(){return`<div class="card"><h2 style="text-align:center;color:var(--gold);margin-bottom:20px">Welcome, Partner!</h2>
 <input type="text" id="usernameInput" placeholder="Username" maxlength="20">
@@ -1366,8 +1366,8 @@ function initTitle(){
     }
 }
 
-// Auto-login
-const saved=localStorage.getItem(S);if(saved){const {un,pw}=JSON.parse(saved);window.addEventListener('DOMContentLoaded',()=>{initTitle();show(loginScreen());document.getElementById('usernameInput').value=un;document.getElementById('passwordInput').value=pw;});}else{window.addEventListener('DOMContentLoaded',()=>{initTitle();show(loginScreen());});}
+// Auto-login (username only - password not stored for security)
+const saved=localStorage.getItem(S);if(saved){const {un}=JSON.parse(saved);window.addEventListener('DOMContentLoaded',()=>{initTitle();show(loginScreen());document.getElementById('usernameInput').value=un||'';});}else{window.addEventListener('DOMContentLoaded',()=>{initTitle();show(loginScreen());});}
     </script>
 </body>
 </html>

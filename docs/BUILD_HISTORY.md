@@ -205,6 +205,43 @@ Claude conversation ran out of context during debugging. Required context recove
 
 ---
 
+## Phase 7: Security Audit & Hardening
+
+### Context
+Comprehensive security audit performed to identify vulnerabilities before scaling.
+
+### Step 7.1: Security Audit
+**What:** Full security and privacy review of frontend, backend, and Firebase configuration
+**Found:** 26 vulnerabilities (9 CRITICAL, 7 HIGH, 6 MEDIUM, 4 LOW)
+**Key Issues:**
+- Firebase Security Rules too permissive (any auth user could modify any game)
+- Plaintext password stored in localStorage
+- SECURITY.md documented wrong database path (`pvp_games` vs actual `games`)
+- Stats API had no authentication
+
+### Step 7.2: Firebase Security Rules Tightening
+**Problem:** Rules allowed any authenticated user to write to any game
+**Solution:** Added participant checks to write rules:
+```
+auth.uid == p1_uid || auth.uid == p2_uid || joining game
+```
+**Also added:** Field validations for actions (0-2), bullets (0-6), rounds (1-13), status
+**Lesson:** Always test security rules match actual database paths
+
+### Step 7.3: Remove Plaintext Password Storage
+**Problem:** localStorage stored `{un, pw}` in plaintext
+**Risk:** XSS or physical access could expose passwords
+**Solution:** Changed to store only `{un}` (username for convenience)
+**Tradeoff:** Users must re-enter password each session
+**Lesson:** Convenience vs security tradeoff - chose security
+
+### Step 7.4: Documentation Sync
+**Problem:** SECURITY.md documented `pvp_games` but game uses `games` path
+**Solution:** Updated SECURITY.md with actual rules and paths
+**Lesson:** Security documentation must match implementation exactly
+
+---
+
 ## Problems Encountered
 
 ### Problem 1: Firebase Blaze Payment Page
@@ -252,7 +289,8 @@ Claude conversation ran out of context during debugging. Required context recove
 ```
 v1: Pure client-side → Insecure
 v2: Cloud Functions attempt → Blocked by Blaze requirement
-v3: Security Rules + Railway API → Current production
+v3: Security Rules + Railway API → Production
+v4: Security hardening → Current (participant checks, no password storage)
 ```
 
 ---
