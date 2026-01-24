@@ -873,11 +873,16 @@ joinPvP(id);}
 
 async function joinPvP(gid){
 console.log('joinPvP: Attempting to join game', gid);
-if(!authReady){alert('Authentication not ready. Please wait.');return;}
+if(!authReady || !firebase.auth().currentUser){
+    console.log('joinPvP: Auth not ready, authReady=', authReady, 'currentUser=', firebase.auth().currentUser);
+    alert('Authentication not ready. Please wait a moment and try again.');
+    return;
+}
 show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">⏳</div><div style="color:#d4a574">Joining game...</div></div>`);
 try {
     // Direct database write to join game
     const myUid = firebase.auth().currentUser.uid;
+    console.log('joinPvP: My UID is', myUid);
     const gameRef = db.ref('games/' + gid);
     const snapshot = await gameRef.once('value');
     const g = snapshot.val();
@@ -899,6 +904,7 @@ try {
     }
 
     // Join the game
+    console.log('joinPvP: Updating game with p2=', user.username, 'p2_uid=', myUid);
     await gameRef.update({
         p2: user.username,
         p2_uid: myUid,
