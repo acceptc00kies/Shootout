@@ -3,12 +3,19 @@
     "games": {
       "$gameId": {
         ".read": true,
-        ".write": "auth != null && (
-          !data.exists() ||
-          data.child('p1_uid').val() == auth.uid ||
-          data.child('p2_uid').val() == auth.uid ||
-          (data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid)
-        )",
+        ".write": "auth != null && (!data.exists() || data.child('p1_uid').val() == auth.uid || data.child('p2_uid').val() == auth.uid || (data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid))",
+        "p1": {
+          ".validate": "newData.isString()"
+        },
+        "p2": {
+          ".validate": "newData.val() == null || newData.isString()"
+        },
+        "p1_uid": {
+          ".validate": "newData.isString()"
+        },
+        "p2_uid": {
+          ".validate": "newData.val() == null || newData.isString()"
+        },
         "p1_action": {
           ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
         },
@@ -27,20 +34,23 @@
         "status": {
           ".validate": "newData.val() == 'WAITING' || newData.val() == 'PLAYING' || newData.val() == 'FINISHED'"
         },
-        "p1_uid": {
-          ".validate": "newData.isString()"
-        },
-        "p2_uid": {
-          ".validate": "newData.val() == null || newData.isString()"
-        },
         "winner": {
           ".validate": "newData.val() == null || newData.val() == 'p1' || newData.val() == 'p2' || newData.val() == 'draw'"
         },
         "winner_uid": {
           ".validate": "newData.val() == null || newData.isString()"
         },
+        "bet": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
         "created": {
           ".validate": "newData.isNumber()"
+        },
+        "id": {
+          ".validate": "newData.isString()"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     },
