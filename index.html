@@ -1027,7 +1027,7 @@ show(`<div class="card">
     </div>
 </div></div>
 ${typeof myAction!=='number'?`<div class="action-panel"><h3 style="text-align:center;color:#f4e8d0;margin:10px 0 15px;font-family:'Smokum',cursive;font-size:1.4rem">Make Your Move</h3>
-<button class="btn btn-action" onclick="submitAction(0)">🔫 LOAD <span style="font-size:0.85rem;opacity:0.8">+1 Bullet</span></button>
+<button class="btn btn-action" onclick="submitAction(0)" ${myBullets>=6?'disabled style="opacity:0.4"':''}>🔫 LOAD ${myBullets>=6?'<span style="font-size:0.85rem">(Full!)</span>':'<span style="font-size:0.85rem;opacity:0.8">+1 Bullet</span>'}</button>
 <button class="btn btn-action" onclick="submitAction(1)">🛡️ DEFEND <span style="font-size:0.85rem;opacity:0.8">Block Shot</span></button>
 <button class="btn btn-action" onclick="submitAction(2)" ${myBullets===0?'disabled style="opacity:0.4"':''}>💥 SHOOT ${myBullets===0?'<span style="font-size:0.85rem">(No Ammo!)</span>':'<span style="font-size:0.85rem;opacity:0.8">Fire!</span>'}</button></div>`:`<div style="text-align:center;padding:30px;color:#d4a574;background:rgba(0,0,0,0.2);border-radius:8px;border:1px dashed rgba(212,175,55,0.3)"><div style="font-size:2.5rem;margin-bottom:15px">⏳</div><div style="font-family:'Smokum',cursive;font-size:1.3rem">Waiting for ${g[oppRole]}...</div></div>`}
 <div class="round-log" style="margin-top:15px">
@@ -1057,6 +1057,12 @@ try {
         return;
     }
 
+    // Safety check: Don't allow actions if game should have ended
+    if (g.round > 12) {
+        console.error('submitAction: Round exceeded 12, game should have ended');
+        return;
+    }
+
     const isP1 = g.p1_uid === myUid;
     const isP2 = g.p2_uid === myUid;
     if (!isP1 && !isP2) {
@@ -1066,6 +1072,10 @@ try {
 
     // Validate action
     const myBullets = isP1 ? g.p1_bullets : g.p2_bullets;
+    if (action === 0 && myBullets >= 6) {
+        alert('Gun is fully loaded!');
+        return;
+    }
     if (action === 2 && myBullets === 0) {
         alert('No bullets to shoot!');
         return;
