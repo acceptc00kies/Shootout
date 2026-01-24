@@ -2,59 +2,7 @@
   "rules": {
     "games": {
       ".read": true,
-      "$gameId": {
-        ".write": "auth != null",
-        ".validate": "newData.hasChildren(['id', 'p1', 'p1_uid', 'bet', 'round', 'status']) || !newData.exists()",
-
-        "id": {
-          ".validate": "newData.val() === $gameId"
-        },
-        "p1": {
-          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 15"
-        },
-        "p1_uid": {
-          ".validate": "!data.exists() ? newData.val() === auth.uid : newData.val() === data.val()"
-        },
-        "p2": {
-          ".validate": "newData.val() === null || (newData.isString() && newData.val().length >= 2 && newData.val().length <= 15)"
-        },
-        "p2_uid": {
-          ".validate": "newData.val() === null || newData.val() === auth.uid || newData.val() === data.val()"
-        },
-        "bet": {
-          ".validate": "newData.isNumber() && newData.val() >= 0.01 && newData.val() <= 1000"
-        },
-        "round": {
-          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 12"
-        },
-        "p1_bullets": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
-        },
-        "p2_bullets": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
-        },
-        "p1_action": {
-          ".validate": "newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
-        },
-        "p2_action": {
-          ".validate": "newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
-        },
-        "status": {
-          ".validate": "newData.val() === 'WAITING' || newData.val() === 'PLAYING' || newData.val() === 'FINISHED'"
-        },
-        "winner": {
-          ".validate": "newData.isString()"
-        },
-        "winner_uid": {
-          ".validate": "newData.isString() || newData.val() === null"
-        },
-        "created": {
-          ".validate": "newData.isNumber()"
-        },
-        "last_round": {
-          ".validate": "newData.hasChildren(['round', 'p1_action', 'p2_action', 'winner'])"
-        }
-      }
+      ".write": "auth != null"
     },
     "leaderboard": {
       ".read": true,

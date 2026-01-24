@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://web-production-6d9e.up.railway.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com; connect-src https://*.firebaseio.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com https://web-production-6d9e.up.railway.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://*.firebaseapp.com https://apis.google.com;">
     <title>🤠 Wild West Shootout - Cloud Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rye&family=Crimson+Text:wght@400;600;700&family=Smokum&display=swap');
@@ -631,14 +631,19 @@ try {
     firebase.initializeApp(firebaseConfig);
     db = firebase.database();
     functions = firebase.functions();
-    // Sign in anonymously for anti-cheat
-    firebase.auth().signInAnonymously().then(() => {
-        authReady = true;
-        console.log('🔐 Anonymous auth ready');
-    }).catch(e => console.error('Auth error:', e));
     console.log('🔥 Firebase connected!');
+    // Sign in anonymously for anti-cheat
+    console.log('🔑 Attempting anonymous auth...');
+    firebase.auth().signInAnonymously().then((userCredential) => {
+        authReady = true;
+        console.log('🔐 Anonymous auth ready, UID:', userCredential.user.uid);
+    }).catch(e => {
+        console.error('❌ Auth error:', e.code, e.message);
+        alert('Auth failed: ' + e.message);
+    });
 } catch(e) {
     console.error('Firebase init error:', e);
+    alert('Firebase init failed: ' + e.message);
 }
 
 // Cloud Functions references (for future Blaze plan upgrade)
