@@ -942,7 +942,9 @@ gameRef.on('value', (snapshot)=>{
 
     // Check if we need to resolve the round (only p1 does this to prevent race conditions)
     // Fire-and-forget async resolution - keep callback synchronous for Firebase compatibility
-    if (g.status === 'PLAYING' && g.p1_action !== null && g.p2_action !== null && !isResolving) {
+    // Note: Use typeof === 'number' because Firebase drops null values (making them undefined)
+    // and undefined !== null is TRUE, which would incorrectly trigger resolution
+    if (g.status === 'PLAYING' && typeof g.p1_action === 'number' && typeof g.p2_action === 'number' && !isResolving) {
         const myUid = firebase.auth().currentUser?.uid;
         if (myUid && g.p1_uid === myUid) {
             console.log('listenToGame: Both actions in, p1 resolving round');
@@ -1082,7 +1084,7 @@ try {
     // try to resolve simultaneously, causing double updates or state corruption
     const updatedSnap = await gameRef.once('value');
     const updatedGame = updatedSnap.val();
-    if (isP1 && updatedGame.p1_action !== null && updatedGame.p2_action !== null && !isResolving) {
+    if (isP1 && typeof updatedGame.p1_action === 'number' && typeof updatedGame.p2_action === 'number' && !isResolving) {
         console.log('submitAction: Both actions in, p1 resolving round');
         isResolving = true;
         try {
