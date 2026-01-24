@@ -720,7 +720,9 @@ async function doLogin(){const un=document.getElementById('usernameInput').value
 if(!isValidUsername(un)){alert('Username must be 2-15 characters (letters, numbers, underscore only)');return;}
 show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">☁️</div><div style="color:#d4a574">Connecting to cloud...</div></div>`);
 let result=await api('/api/login','POST',{username:un,password:pw});
-if(!result||result.error){result=await api('/api/register','POST',{username:un,password:pw});if(result&&result.success){alert('✅ Account created!');}else{alert('❌ '+(result?.error||'Connection failed'));show(loginScreen());return;}}
+if(result&&result.success){alert('✅ Welcome back, '+result.username+'!');}
+else if(!result||result.error==='User not found'){result=await api('/api/register','POST',{username:un,password:pw});if(result&&result.success){alert('✅ Account created!');}else{alert('❌ '+(result?.error||'Connection failed'));show(loginScreen());return;}}
+else{alert('❌ '+(result?.error||'Login failed'));show(loginScreen());return;}
 if(result.token)localStorage.setItem(TOKEN_KEY,result.token);
 const stats=await api('/api/stats/'+un);user={username:un,...stats};if(!user.ai_stats)user.ai_stats={};if(!user.achievements)user.achievements=[];if(!user.pvp)user.pvp={wins:0,losses:0,draws:0,games:0,streak:0,best_streak:0};
 localStorage.setItem(S,JSON.stringify({un}));menu();}

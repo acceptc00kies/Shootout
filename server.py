@@ -18,14 +18,19 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-# CORS: Only allow known frontends
-CORS(app, origins=[
-    'https://wild-west-shootout.vercel.app',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5500',
-    'http://127.0.0.1:5500'
-])
+# CORS: Only allow known frontends (with proper preflight support)
+CORS(app,
+    origins=[
+        'https://wild-west-shootout.vercel.app',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:5500',
+        'http://127.0.0.1:5500'
+    ],
+    supports_credentials=True,
+    allow_headers=['Content-Type', 'Authorization'],
+    methods=['GET', 'POST', 'OPTIONS']
+)
 
 # Rate limiting
 limiter = Limiter(
@@ -379,13 +384,13 @@ def pvp_leaderboard():
 
 @app.route('/', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.1.0'})
+    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.2.0'})
 
 @app.route('/api', methods=['GET'])
 def api_info():
     return jsonify({
         'status': 'ok',
-        'version': '2.1.0',
+        'version': '2.2.0',
         'security': ['bcrypt', 'rate-limiting', 'cors-restricted', 'token-auth', 'single-session', 'delta-sync']
     })
 
