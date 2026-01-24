@@ -2,6 +2,17 @@
 
 A strategic multiplayer duel game - like Rock, Paper, Scissors but with bullets, timing, and mind games.
 
+## Standards
+
+This project follows [acceptc00kies/master-guidance](https://github.com/acceptc00kies/master-guidance)
+
+## Documentation
+
+- [Build History](docs/BUILD_HISTORY.md) - How this project was built, with reasoning
+- [Architecture](docs/ARCHITECTURE.md) - System design and tech choices
+- [Security](docs/SECURITY.md) - Anti-cheat and security implementation
+- [API](docs/API.md) - Backend API documentation
+
 ## Game Rules
 
 Each round, choose one action:
@@ -68,6 +79,14 @@ SHOOTOUT/
 ├── database.rules.json  # Firebase security rules
 ├── firebase.json        # Firebase config
 ├── .firebaserc          # Project linking
+├── server.py            # Railway stats API
+├── requirements.txt     # Python dependencies
+├── Procfile             # Railway start command
+├── docs/                # Documentation
+│   ├── BUILD_HISTORY.md # How this was built
+│   ├── ARCHITECTURE.md  # System design
+│   ├── SECURITY.md      # Security details
+│   └── API.md           # API documentation
 └── functions/           # Cloud Functions (for Blaze plan)
     ├── index.js         # Server-side game logic
     └── package.json     # Dependencies
