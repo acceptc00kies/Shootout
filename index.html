@@ -937,7 +937,7 @@ if(gameRef){
 gameRef=db.ref('games/'+gid);
 gameRef.on('value', (snapshot)=>{
     const g=snapshot.val();
-    console.log('listenToGame: Game update received', g?.status, 'Round:', g?.round);
+    console.log('🎮 LISTENER FIRED:', new Date().toISOString(), 'status:', g?.status, 'p2:', g?.p2);
     if(!g){console.log('listenToGame: Game deleted, leaving');leavePvP();return;}
 
     // Check if we need to resolve the round (only p1 does this to prevent race conditions)
