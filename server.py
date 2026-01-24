@@ -229,6 +229,7 @@ def login():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/logout', methods=['POST'])
+@limiter.limit("10 per minute")
 def logout():
     auth = request.headers.get('Authorization', '')
     if auth.startswith('Bearer '):
@@ -237,6 +238,7 @@ def logout():
     return jsonify({'success': True})
 
 @app.route('/api/session/validate', methods=['GET'])
+@limiter.limit("60 per minute")
 def validate_session():
     """Check if current session is still valid (for single-session enforcement)"""
     auth_user = get_auth_user()
@@ -249,6 +251,7 @@ def validate_session():
 # ============================================================================
 
 @app.route('/api/stats/<username>', methods=['GET'])
+@limiter.limit("30 per minute")
 def get_stats(username):
     try:
         data = load_data()
@@ -276,6 +279,7 @@ def get_stats(username):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/stats/<username>', methods=['POST'])
+@limiter.limit("30 per minute")
 def save_stats(username):
     try:
         # AUTHENTICATION REQUIRED
@@ -356,6 +360,7 @@ def save_stats(username):
 # ============================================================================
 
 @app.route('/api/leaderboard/ai/wins', methods=['GET'])
+@limiter.limit("20 per minute")
 def ai_leaderboard():
     try:
         limit = request.args.get('limit', 10, type=int)
@@ -372,6 +377,7 @@ def ai_leaderboard():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/leaderboard/pvp/wins', methods=['GET'])
+@limiter.limit("20 per minute")
 def pvp_leaderboard():
     try:
         limit = request.args.get('limit', 10, type=int)
@@ -391,15 +397,17 @@ def pvp_leaderboard():
 # ============================================================================
 
 @app.route('/', methods=['GET'])
+@limiter.exempt
 def health():
-    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.3.0'})
+    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.4.0'})
 
 @app.route('/api', methods=['GET'])
+@limiter.exempt
 def api_info():
     return jsonify({
         'status': 'ok',
-        'version': '2.3.0',
-        'security': ['bcrypt', 'rate-limiting', 'cors-restricted', 'token-auth', 'single-session', 'delta-sync', 'session-validation']
+        'version': '2.4.0',
+        'security': ['bcrypt', 'rate-limiting-all-endpoints', 'cors-restricted', 'token-auth', 'single-session', 'delta-sync', 'session-validation']
     })
 
 if __name__ == '__main__':
