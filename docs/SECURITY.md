@@ -131,26 +131,50 @@ Current status: Code ready, blocked by payment processing.
 
 ---
 
-## API Security
+## API Security (v2.4.0)
 
 ### Password Storage
-- SHA-256 hashed (not plaintext) on server
-- Passwords NOT stored in localStorage (security fix Jan 2026)
-- Future: Consider bcrypt for better security
+- **bcrypt** hashed (upgraded from SHA-256)
+- Automatic migration: legacy SHA-256 hashes upgraded on login
+- Passwords NOT stored in localStorage
+
+### Authentication & Sessions
+- Token-based authentication (Bearer tokens)
+- **Single-session enforcement**: New login invalidates all previous sessions
+- Session validation required before starting games
+- 24-hour session expiry
+
+### Rate Limiting (All Endpoints)
+| Endpoint | Limit | Purpose |
+|----------|-------|---------|
+| `/api/register` | 3/min | Prevent account spam |
+| `/api/login` | 5/min | Prevent brute force |
+| `/api/logout` | 10/min | Low priority |
+| `/api/session/validate` | 60/min | Allow rapid gameplay |
+| `/api/stats` GET | 30/min | Profile loading |
+| `/api/stats` POST | 30/min | Stats sync |
+| `/api/leaderboard/*` | 20/min | Leaderboard views |
+| Health endpoints | Exempt | Monitoring |
+| **Global default** | 200/day, 50/hr | Catch-all |
 
 ### CORS
-- Enabled for all origins (game is public)
-- Could restrict to specific domains if needed
+- Restricted to specific origins:
+  - `https://wild-west-shootout.vercel.app`
+  - `localhost:3000`, `localhost:5500` (dev)
+- Credentials supported
+- Authorization header allowed
 
 ### Input Validation
 - Username: 2-15 characters, stripped
 - Password: Required, not empty
-- Stats: Type-checked before storage
+- Stats: Type-checked, auth-verified before storage
+- User can only modify own stats
 
 ---
 
 ## Security Checklist
 
+### Firebase Security
 - [x] Firebase Anonymous Auth enabled
 - [x] Security Rules deployed with participant checks
 - [x] Action values validated (0-2)
@@ -159,35 +183,58 @@ Current status: Code ready, blocked by payment processing.
 - [x] Status values validated (WAITING/PLAYING/FINISHED)
 - [x] UID verification on writes
 - [x] Non-participant writes blocked
+- [x] All fields explicitly listed (`$other: false`)
+
+### Stats API Security
+- [x] bcrypt password hashing
+- [x] Token-based authentication
+- [x] Single-session enforcement
+- [x] Session validation before games
+- [x] Rate limiting (all endpoints)
+- [x] CORS restricted to known origins
+- [x] Stats modification requires auth + own user
+- [x] Delta sync (prevents overwrite attacks)
+
+### Client-Side
 - [x] XSS prevention
-- [x] Password hashing on server
 - [x] Password NOT stored in localStorage
-- [ ] Cloud Functions (pending Blaze)
-- [ ] Rate limiting (not currently implemented)
-- [ ] bcrypt password hashing
+- [x] Self-play prevention (UID + username check)
+- [x] Graceful failure handling
+
+### Pending
+- [ ] Cloud Functions (pending Blaze plan)
+- [ ] Persistent sessions (currently in-memory)
 
 ---
 
 ## Security Audit (Jan 2026)
 
 ### Vulnerabilities Identified: 26
-- CRITICAL: 9
-- HIGH: 7
-- MEDIUM: 6
-- LOW: 4
+- CRITICAL: 9 → **0 remaining**
+- HIGH: 7 → **0 remaining**
+- MEDIUM: 6 → **1 remaining** (in-memory sessions)
+- LOW: 4 → **1 remaining** (session expiry on restart)
 
-### Fixed in This Update
+### Fixed (Phase 7)
 1. Firebase Security Rules tightened (non-participants blocked)
 2. Plaintext password removed from localStorage
 3. All field validations added to rules
 
-### Remaining Issues (Prioritized)
-1. Stats API authentication (anyone can spoof stats)
-2. bcrypt for password hashing
-3. Rate limiting on API
-4. CORS restrictions
+### Fixed (Phase 8)
+1. Stats API authentication (token-based)
+2. bcrypt password hashing (with SHA-256 migration)
+3. Rate limiting on ALL endpoints
+4. CORS restricted to known origins
+5. Single-session enforcement (anti-botting)
+6. Session validation before games
+7. Self-play prevention
+8. Graceful stats sync failure handling
 
-See `.claude/plans/` for full security audit details.
+### Remaining (Low Priority)
+- In-memory sessions cleared on server restart (users re-login)
+- Rate limit storage in-memory (resets on restart)
+
+**Mitigation:** Both are acceptable for current scale. Can add Redis/persistent storage if needed.
 
 ---
 

@@ -270,6 +270,103 @@ auth.uid == p1_uid || auth.uid == p2_uid || joining game
 
 ---
 
+## Phase 8: Session Security & Anti-Botting
+
+### Context
+After Phase 7's Firebase hardening, identified that the Stats API still allowed multi-instance abuse. A user could log into the same account in multiple browsers and farm stats by playing AI games simultaneously.
+
+### Step 8.1: CORS Preflight Fix
+**Problem:** Login always showed "Account created" even for existing accounts
+**Root cause:** Flask-CORS wasn't configured for preflight requests with Authorization header
+**Solution:** Updated CORS config:
+```python
+CORS(app,
+    origins=[...],
+    supports_credentials=True,
+    allow_headers=['Content-Type', 'Authorization'],
+    methods=['GET', 'POST', 'OPTIONS']
+)
+```
+**Lesson:** Browser preflight (OPTIONS) requires explicit CORS configuration
+
+### Step 8.2: Single-Session Enforcement
+**Problem:** Same account could be logged in across unlimited browsers simultaneously
+**Solution:** Modified `create_session()` to invalidate existing sessions on new login:
+```python
+def create_session(username):
+    # Remove existing sessions for this user
+    tokens_to_remove = [t for t, s in active_sessions.items()
+                        if s['username'].lower() == username.lower()]
+    for t in tokens_to_remove:
+        del active_sessions[t]
+    # Create new session...
+```
+**Effect:** Logging in on Browser B automatically invalidates Browser A's session
+**Lesson:** Session management is critical for stat integrity
+
+### Step 8.3: Session Validation Before Games
+**Problem:** Server-side session invalidation worked, but old browser didn't know until API call. Since PvP uses Firebase (not Stats API), player could complete games with stale session.
+**Solution:** Added `/api/session/validate` endpoint + frontend `validateSession()` check before:
+- Starting AI games (`startAI()`)
+- Creating PvP games (`doCreatePvP()`)
+- Joining PvP games (`joinPvP()`)
+**Lesson:** Proactive validation prevents abuse before it happens
+
+### Step 8.4: Self-Play Prevention
+**Problem:** User could join their own PvP game from another browser
+**Root cause:** Only checked Firebase UID, but different browser tabs have different anonymous UIDs
+**Solution:** Added dual check: Firebase UID AND Stats API username
+```javascript
+if (g.p1_uid === myUid || g.p1 === user.username) {
+    alert('Cannot join your own game!');
+    return;
+}
+```
+**Lesson:** Cross-system identity requires checking both identity sources
+
+### Step 8.5: Comprehensive Rate Limiting
+**Problem:** API endpoints had inconsistent rate limiting
+**Solution:** Added rate limits to ALL endpoints:
+
+| Endpoint | Limit | Purpose |
+|----------|-------|---------|
+| `/api/register` | 3/min | Prevent account spam |
+| `/api/login` | 5/min | Prevent brute force |
+| `/api/logout` | 10/min | Low priority |
+| `/api/session/validate` | 60/min | Allow rapid gameplay |
+| `/api/stats` GET | 30/min | Profile loading |
+| `/api/stats` POST | 30/min | Stats sync |
+| `/api/leaderboard/*` | 20/min | Leaderboard views |
+| Health endpoints | Exempt | Monitoring |
+
+**Lesson:** Rate limit all endpoints, but tune limits to not break legitimate use
+
+### Step 8.6: Graceful Stats Sync Failure
+**Problem:** Server restart clears in-memory sessions. If user finishes game and stats sync fails (401), they got kicked out.
+**Solution:** Exclude `/stats` endpoints from the 401 kick-out handler:
+```javascript
+if(r.status===401 && !endpoint.includes('/login')
+   && !endpoint.includes('/register')
+   && !endpoint.includes('/stats')) {
+    // Only kick out for session validation failures
+}
+```
+**Effect:** Stats sync failure is silent, user can re-login later to sync
+**Lesson:** Graceful degradation > hard failures for non-critical operations
+
+### Step 8.7: API Version Bump
+**What:** Updated API version to 2.4.0
+**Security features now active:**
+- bcrypt password hashing
+- Rate limiting (all endpoints)
+- CORS restricted
+- Token-based auth
+- Single-session enforcement
+- Delta stats sync
+- Session validation
+
+---
+
 ## Problems Encountered
 
 ### Problem 1: Firebase Blaze Payment Page
