@@ -893,8 +893,8 @@ try {
     const open = [];
     snapshot.forEach((child) => {
         const g = child.val();
-        // Filter out own games and stale games (older than 10 minutes)
-        if (g.p1_uid !== myUid && g.created && g.created > tenMinutesAgo) {
+        // Filter out own games (by UID or username) and stale games (older than 10 minutes)
+        if (g.p1_uid !== myUid && g.p1 !== user.username && g.created && g.created > tenMinutesAgo) {
             open.push({ id: g.id, p1: g.p1, bet: g.bet });
         }
     });
@@ -941,7 +941,7 @@ try {
         pvpJoin();
         return;
     }
-    if (g.p1_uid === myUid) {
+    if (g.p1_uid === myUid || g.p1 === user.username) {
         alert('Cannot join your own game!');
         pvpJoin();
         return;
