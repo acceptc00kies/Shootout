@@ -944,14 +944,17 @@ gameRef.on('value', (snapshot)=>{
     // Fire-and-forget async resolution - keep callback synchronous for Firebase compatibility
     // Note: Use typeof === 'number' because Firebase drops null values (making them undefined)
     // and undefined !== null is TRUE, which would incorrectly trigger resolution
-    if (g.status === 'PLAYING' && typeof g.p1_action === 'number' && typeof g.p2_action === 'number' && !isResolving) {
+    const bothActionsIn = g.status === 'PLAYING' && typeof g.p1_action === 'number' && typeof g.p2_action === 'number';
+
+    if (bothActionsIn && !isResolving) {
         const myUid = firebase.auth().currentUser?.uid;
         if (myUid && g.p1_uid === myUid) {
             console.log('listenToGame: Both actions in, p1 resolving round');
             isResolving = true;
             resolveRound(gameRef, g).finally(() => { isResolving = false; });
-            return; // Don't render yet, wait for next update after resolution
         }
+        // Both players skip rendering when both actions are in - wait for resolution update (Fix B)
+        return;
     }
 
     renderPvP(g);
@@ -1028,7 +1031,7 @@ ${typeof myAction!=='number'?`<div class="action-panel"><h3 style="text-align:ce
 <button class="btn btn-action" onclick="submitAction(1)">🛡️ DEFEND <span style="font-size:0.85rem;opacity:0.8">Block Shot</span></button>
 <button class="btn btn-action" onclick="submitAction(2)" ${myBullets===0?'disabled style="opacity:0.4"':''}>💥 SHOOT ${myBullets===0?'<span style="font-size:0.85rem">(No Ammo!)</span>':'<span style="font-size:0.85rem;opacity:0.8">Fire!</span>'}</button></div>`:`<div style="text-align:center;padding:30px;color:#d4a574;background:rgba(0,0,0,0.2);border-radius:8px;border:1px dashed rgba(212,175,55,0.3)"><div style="font-size:2.5rem;margin-bottom:15px">⏳</div><div style="font-family:'Smokum',cursive;font-size:1.3rem">Waiting for ${g[oppRole]}...</div></div>`}
 <div class="round-log" style="margin-top:15px">
-${log.length>0?log.map(l=>`<div class="log-entry"><div style="font-weight:700;color:#d4af37;font-family:'Rye',cursive">Round ${l.r}</div><div style="margin:5px 0">${escapeHtml(g.p1)}: <strong>${l.p1}</strong> | ${escapeHtml(g.p2)}: <strong>${l.p2}</strong></div><div style="color:${l.w===0?'#d4a574':l.w===1?'#4CAF50':'#4CAF50'};font-weight:600">${l.w===0?'⚔️ TIE - Both survive':l.w===1?`🎉 ${escapeHtml(g.p1)} WINS the round!`:`🎉 ${escapeHtml(g.p2)} WINS the round!`}</div></div>`).reverse().join(''):'<div style="color:#666;text-align:center;padding:20px;font-style:italic">The duel begins...</div>'}
+${log.length>0?log.map(l=>`<div class="log-entry"><div style="font-weight:700;color:#d4af37;font-family:'Rye',cursive">Round ${l.r}</div><div style="margin:5px 0">${escapeHtml(g.p1)}: <strong>${l.p1}</strong> | ${escapeHtml(g.p2)}: <strong>${l.p2}</strong></div><div style="color:${l.w===0?'#d4a574':l.w===(myRole==='p1'?1:2)?'#4CAF50':'#e74c3c'};font-weight:600">${l.w===0?'⚔️ TIE - Both survive':l.w===1?`🎉 ${escapeHtml(g.p1)} WINS the round!`:`🎉 ${escapeHtml(g.p2)} WINS the round!`}</div></div>`).reverse().join(''):'<div style="color:#666;text-align:center;padding:20px;font-style:italic">The duel begins...</div>'}
 </div>
 <button class="btn" onclick="leavePvP()" style="margin-top:15px;background:linear-gradient(135deg,#8b2f2f 0%,#5a1f1f 100%)">🚪 Leave Match</button></div>`);
 } catch(e) {
@@ -1037,8 +1040,10 @@ ${log.length>0?log.map(l=>`<div class="log-entry"><div style="font-weight:700;co
 }}
 
 async function submitAction(action){
-if(!game||!authReady)return;
 const an=['LOAD','DEFEND','SHOOT'];
+// Check prerequisites with logging (Fix E - avoid silent failures)
+if(!game){console.error('submitAction: No game ID');return;}
+if(!authReady){console.error('submitAction: Auth not ready');return;}
 console.log('submitAction: Submitting', an[action]);
 try {
     // Direct database write for action
@@ -1067,9 +1072,10 @@ try {
     }
 
     // Check if already submitted
+    // Note: Use typeof === 'number' because Firebase drops null values (making them undefined)
     const myActionField = isP1 ? 'p1_action' : 'p2_action';
-    if (g[myActionField] !== null) {
-        console.log('Already submitted action');
+    if (typeof g[myActionField] === 'number') {
+        console.log('Already submitted action this round');
         return;
     }
 
@@ -1101,6 +1107,13 @@ try {
 // Client-side round resolution (validated by Firebase Rules)
 async function resolveRound(gameRef, g) {
     console.log('resolveRound: Resolving round', g.round);
+
+    // Validate actions are numbers before processing (Fix C)
+    if (typeof g.p1_action !== 'number' || typeof g.p2_action !== 'number') {
+        console.error('resolveRound: Invalid actions', g.p1_action, g.p2_action);
+        return;
+    }
+
     const winner = calcWinner(g.p1_action, g.p1_bullets, g.p2_action, g.p2_bullets);
     const newP1Bullets = calculateNewBullets(g.p1_action, g.p1_bullets);
     const newP2Bullets = calculateNewBullets(g.p2_action, g.p2_bullets);
@@ -1113,7 +1126,10 @@ async function resolveRound(gameRef, g) {
             p1_action: g.p1_action,
             p2_action: g.p2_action,
             winner: winner
-        }
+        },
+        // Always reset actions after resolution (Fix A)
+        p1_action: null,
+        p2_action: null
     };
 
     if (winner === 1) {
@@ -1130,8 +1146,6 @@ async function resolveRound(gameRef, g) {
         update.winner_uid = null;
     } else {
         update.round = g.round + 1;
-        update.p1_action = null;
-        update.p2_action = null;
     }
 
     await gameRef.update(update);
