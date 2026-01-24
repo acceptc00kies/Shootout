@@ -236,6 +236,14 @@ def logout():
         active_sessions.pop(token, None)
     return jsonify({'success': True})
 
+@app.route('/api/session/validate', methods=['GET'])
+def validate_session():
+    """Check if current session is still valid (for single-session enforcement)"""
+    auth_user = get_auth_user()
+    if not auth_user:
+        return jsonify({'valid': False, 'error': 'Session expired'}), 401
+    return jsonify({'valid': True, 'username': auth_user})
+
 # ============================================================================
 # STATS ENDPOINTS
 # ============================================================================
@@ -384,14 +392,14 @@ def pvp_leaderboard():
 
 @app.route('/', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.2.0'})
+    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.3.0'})
 
 @app.route('/api', methods=['GET'])
 def api_info():
     return jsonify({
         'status': 'ok',
-        'version': '2.2.0',
-        'security': ['bcrypt', 'rate-limiting', 'cors-restricted', 'token-auth', 'single-session', 'delta-sync']
+        'version': '2.3.0',
+        'security': ['bcrypt', 'rate-limiting', 'cors-restricted', 'token-auth', 'single-session', 'delta-sync', 'session-validation']
     })
 
 if __name__ == '__main__':

@@ -773,6 +773,12 @@ async function syncNewAchievements(newAchs) {
     });
 }
 
+// Session validation (for single-session enforcement)
+async function validateSession() {
+    const result = await api('/api/session/validate', 'GET');
+    return result && result.valid;
+}
+
 // UI Functions
 function show(h){document.getElementById('content').innerHTML=h;}
 
@@ -839,6 +845,7 @@ async function doCreatePvP(){
 const bet=document.getElementById('betInput').value;
 if(!bet||bet<=0){alert('Enter valid bet!');return;}
 if(!authReady){alert('Authentication not ready. Please wait.');return;}
+if(!await validateSession()){alert('⚠️ Session expired. Please log in again.');localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(S);show(loginScreen());return;}
 console.log('doCreatePvP: Creating game with bet', bet);
 show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">⏳</div><div style="color:#d4a574">Creating game...</div></div>`);
 try {
@@ -923,6 +930,7 @@ joinPvP(id);}
 async function joinPvP(gid){
 console.log('joinPvP: Attempting to join game', gid);
 if(!authReady){alert('Authentication not ready. Please wait.');return;}
+if(!await validateSession()){alert('⚠️ Session expired. Please log in again.');localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(S);show(loginScreen());return;}
 show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">⏳</div><div style="color:#d4a574">Joining game...</div></div>`);
 try {
     // Direct database write to join game
