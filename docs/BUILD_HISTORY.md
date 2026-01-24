@@ -240,6 +240,34 @@ auth.uid == p1_uid || auth.uid == p2_uid || joining game
 **Solution:** Updated SECURITY.md with actual rules and paths
 **Lesson:** Security documentation must match implementation exactly
 
+### Step 7.5: Security Rules Debugging (4 Iterations)
+**Context:** After deploying initial security rules, game broke in multiple ways. Required 4 deployment cycles to fix.
+
+**Iteration 1 - Initial Deploy:**
+- Deployed participant-only write rules
+- **Bug:** P2 couldn't find games in lobby
+- **Cause:** Multiline `.write` rule format + missing field validations for `p1`, `p2`, `bet`, `id`
+- **Fix:** Convert to single-line rule, add all missing field validations
+
+**Iteration 2 - Query Support:**
+- **Bug:** "Error loading games please try again later"
+- **Cause:** `.read: true` was at `$gameId` level, but `orderByChild('status')` query needs read permission at `games` collection level
+- **Fix:** Move `.read: true` to `games` level, add `.indexOn: ["status", "created"]`
+
+**Iteration 3 - Game Flow:**
+- **Bug:** After P1 loaded and P2 guarded, game froze
+- **Cause 1:** `resolveRound()` writes `last_round` object (for round history) - not in validation rules
+- **Cause 2:** `$other: { ".validate": false }` rejected any field not explicitly listed
+- **Cause 3:** `winner` validation only allowed 'p1'/'p2'/'draw' but code stores actual username
+- **Fix:** Add `last_round` with all children, change `winner` to allow any string
+
+**Iteration 4 - Final Working:**
+- All rules properly validated
+- Game flow works: create → join → play → resolve rounds → finish
+- Verified with actual PvP testing
+
+**Lesson:** Firebase Security Rules with `$other: { ".validate": false }` require ALL fields to be explicitly listed. Any field the code writes that isn't in the rules will be silently rejected.
+
 ---
 
 ## Problems Encountered

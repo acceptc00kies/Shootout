@@ -34,32 +34,32 @@ Location: `database.rules.json`
 {
   "rules": {
     "games": {
+      ".read": true,
+      ".indexOn": ["status", "created"],
       "$gameId": {
-        ".read": true,
-        ".write": "auth != null && (
-          !data.exists() ||
-          data.child('p1_uid').val() == auth.uid ||
-          data.child('p2_uid').val() == auth.uid ||
-          (data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid)
-        )",
-        "p1_action": {
-          ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
+        ".write": "auth != null && (!data.exists() || data.child('p1_uid').val() == auth.uid || data.child('p2_uid').val() == auth.uid || (data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid))",
+        "p1": { ".validate": "newData.isString()" },
+        "p2": { ".validate": "newData.val() == null || newData.isString()" },
+        "p1_uid": { ".validate": "newData.isString()" },
+        "p2_uid": { ".validate": "newData.val() == null || newData.isString()" },
+        "p1_action": { ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)" },
+        "p2_action": { ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)" },
+        "p1_bullets": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6" },
+        "p2_bullets": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6" },
+        "round": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 13" },
+        "status": { ".validate": "newData.val() == 'WAITING' || newData.val() == 'PLAYING' || newData.val() == 'FINISHED'" },
+        "winner": { ".validate": "newData.val() == null || newData.isString()" },
+        "winner_uid": { ".validate": "newData.val() == null || newData.isString()" },
+        "bet": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "created": { ".validate": "newData.isNumber()" },
+        "id": { ".validate": "newData.isString()" },
+        "last_round": {
+          "round": { ".validate": "newData.isNumber()" },
+          "p1_action": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2" },
+          "p2_action": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2" },
+          "winner": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2" }
         },
-        "p2_action": {
-          ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)"
-        },
-        "p1_bullets": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
-        },
-        "p2_bullets": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
-        },
-        "round": {
-          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 13"
-        },
-        "status": {
-          ".validate": "newData.val() == 'WAITING' || newData.val() == 'PLAYING' || newData.val() == 'FINISHED'"
-        }
+        "$other": { ".validate": false }
       }
     },
     "leaderboard": {
@@ -69,6 +69,12 @@ Location: `database.rules.json`
   }
 }
 ```
+
+**Key Design Notes:**
+- `.read: true` at `games` level (not `$gameId`) - enables `orderByChild()` queries
+- `.indexOn` for query performance on status and created fields
+- All fields explicitly listed due to `$other: { ".validate": false }`
+- `last_round` object stores round history for UI feedback
 
 **Write Rules Explained:**
 - `!data.exists()` - Anyone authenticated can create a new game
