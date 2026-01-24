@@ -154,6 +154,48 @@ pvp_games/{id}:
 
 ---
 
+## Phase 6: PvP Bug Fixes (Multi-Session Debugging)
+
+### Context
+Claude conversation ran out of context during debugging. Required context recovery and continuation across sessions using `.claude/plans/` files and BUILD_HISTORY.md for state persistence.
+
+### Step 6.1: Game Freeze After Round 1
+**Problem:** Both players calling `resolveRound()` caused race condition
+**Root cause:** Firebase listener triggered for both players when actions submitted
+**Solution:** Only P1 (host) resolves rounds + added `isResolving` flag to prevent double resolution
+**Lesson:** Single source of truth for state mutations in realtime systems
+
+### Step 6.2: Stale Games in Lobby
+**Problem:** Games stuck in WAITING status after host leaves
+**Solution:** Added `onDisconnect().remove()` for automatic cleanup + 10-minute age filter in lobby listing
+**Lesson:** Always handle disconnect scenarios in realtime apps
+
+### Step 6.3: P1 Not Updating When P2 Joins
+**Problem:** Firebase drops null values (stores as undefined)
+**Root cause:** `undefined !== null` is TRUE in JavaScript, so checks like `g.p2_uid !== null` returned TRUE for undefined
+**Solution:** Changed all null checks to `typeof field === 'number'`
+**Lesson:** Firebase null-dropping is a critical gotcha
+
+### Step 6.4: Actions Not Submitting
+**Problem:** Same null-dropping issue in `submitAction()` function
+**Root cause:** After round resets, `p1_action` becomes undefined. Check `g[myActionField] !== null` returned TRUE, blocking new action submission
+**Solution:** Changed to `typeof g[myActionField] === 'number'`
+**Lesson:** Once you find a bug pattern, search entire codebase for same issue
+
+### Step 6.5: Proactive Bug Prevention
+**What:** After fixing immediate bugs, proactively searched codebase for related issues
+**Found and fixed:**
+- **Fix A:** Reset actions when game ends (prevent stale state on re-render)
+- **Fix B:** Both players skip render during resolution (prevent race condition where P2 renders intermediate state)
+- **Fix C:** Add validation to `resolveRound()` (defensive check that actions are valid numbers)
+- **Fix D:** Loss color in log (was green for all outcomes, now red for losses)
+- **Fix E:** Debug output for silent failures in `submitAction()` (log when game/auth missing)
+
+**Key Decision:** Proactive bug hunting after pattern discovery
+**Tradeoff:** Extra time upfront → fewer bugs in production
+
+---
+
 ## Problems Encountered
 
 ### Problem 1: Firebase Blaze Payment Page
@@ -170,6 +212,15 @@ pvp_games/{id}:
 **Cause:** GitHub detected Firebase API key in code
 **Solution:** This is a false positive - Firebase client API keys are designed to be public. Security comes from Security Rules, not key secrecy.
 **Lesson:** Understand which secrets are actually secret
+
+### Problem 4: Firebase Null-Dropping
+**Cause:** Firebase Realtime Database drops null values entirely (stores as undefined instead)
+**Impact:** All checks like `field !== null` return TRUE for undefined, causing logic failures:
+- P2 join detection failed (thought P2 already joined)
+- Action submission blocked (thought action already submitted)
+- Round resolution triggered incorrectly
+**Solution:** Use `typeof field === 'number'` instead of `field !== null` for all Firebase value checks
+**Lesson:** This is a critical Firebase gotcha that affects any realtime game state management
 
 ---
 
