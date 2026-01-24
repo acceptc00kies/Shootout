@@ -194,6 +194,15 @@ Claude conversation ran out of context during debugging. Required context recove
 **Key Decision:** Proactive bug hunting after pattern discovery
 **Tradeoff:** Extra time upfront → fewer bugs in production
 
+### Step 6.6: Bullet Limit UI Feedback
+**Problem:** LOAD button had no visual feedback at max capacity (6 bullets)
+**Root cause:** Unlike SHOOT (disabled at 0), LOAD had no disabled state
+**Solution:**
+- UI: LOAD button disabled at 6 bullets, shows "(Full!)"
+- Validation: Server rejects LOAD at max with alert
+- Safety: Added round > 12 check to prevent edge cases
+**Lesson:** Action buttons should show state for ALL boundary conditions, not just some
+
 ---
 
 ## Problems Encountered
