@@ -36,7 +36,7 @@
           ".validate": "newData.val() == 'WAITING' || newData.val() == 'PLAYING' || newData.val() == 'FINISHED'"
         },
         "winner": {
-          ".validate": "newData.val() == null || newData.val() == 'p1' || newData.val() == 'p2' || newData.val() == 'draw'"
+          ".validate": "newData.val() == null || newData.isString()"
         },
         "winner_uid": {
           ".validate": "newData.val() == null || newData.isString()"
@@ -49,6 +49,20 @@
         },
         "id": {
           ".validate": "newData.isString()"
+        },
+        "last_round": {
+          "round": {
+            ".validate": "newData.isNumber()"
+          },
+          "p1_action": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+          },
+          "p2_action": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+          },
+          "winner": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+          }
         },
         "$other": {
           ".validate": false
