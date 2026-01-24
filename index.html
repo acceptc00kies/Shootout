@@ -1266,7 +1266,7 @@ function copyID(id){if(navigator.clipboard){navigator.clipboard.writeText(id).th
 function fallbackCopy(id){const t=document.createElement('textarea');t.value=id;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy');alert('✅ ID copied: '+id);}catch(e){alert('📋 Copy this ID: '+id);}document.body.removeChild(t);}
 
 // AI Game Functions
-function startAI(k){ai=AIs[k];game={id:Date.now(),p1:user.username,p2:ai.n,r:1,p1b:0,p2b:0,p1a:null,p2a:null,ai:k};log=[];playGame();}
+async function startAI(k){if(!await validateSession()){alert('⚠️ Session expired. Please log in again.');localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(S);show(loginScreen());return;}ai=AIs[k];game={id:Date.now(),p1:user.username,p2:ai.n,r:1,p1b:0,p2b:0,p1a:null,p2a:null,ai:k};log=[];playGame();}
 
 function playGame(){const g=game;const an=['LOAD','DEFEND','SHOOT'];
 if(g.p1a!==null&&g.p2a!==null){const w=calcWin(g.p1a,g.p1b,g.p2a,g.p2b);let nb1=g.p1b,nb2=g.p2b;
