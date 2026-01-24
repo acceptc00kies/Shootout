@@ -16,10 +16,10 @@
           ".validate": "!data.exists() ? newData.val() === auth.uid : newData.val() === data.val()"
         },
         "p2": {
-          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 15"
+          ".validate": "newData.val() === null || (newData.isString() && newData.val().length >= 2 && newData.val().length <= 15)"
         },
         "p2_uid": {
-          ".validate": "(!data.exists() && data.parent().child('p1_uid').val() !== auth.uid && newData.val() === auth.uid) || newData.val() === data.val()"
+          ".validate": "newData.val() === null || (!data.exists() && data.parent().child('p1_uid').val() !== auth.uid && newData.val() === auth.uid) || newData.val() === data.val()"
         },
         "bet": {
           ".validate": "newData.isNumber() && newData.val() >= 0.01 && newData.val() <= 1000"
