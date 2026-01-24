@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://web-production-6d9e.up.railway.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
+    <title>🤠 Wild West Shootout - Cloud Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rye&family=Crimson+Text:wght@400;600;700&family=Smokum&display=swap');
+        :root {
+            --desert-sand: #d4a574;
+            --dark-leather: #2d1810;
+            --rusty-red: #8b2f2f;
+            --gold: #d4af37;
+            --parchment: #f4e8d0;
+            --shadow: rgba(0, 0, 0, 0.5);
+            --sunset-orange: #e67e22;
+            --blood-red: #c0392b;
+            --dust: #a0826d;
+        }
+
+        /* Western animations */
+        @keyframes dustDrift {
+            0%, 100% { transform: translateX(0) translateY(0); opacity: 0.03; }
+            50% { transform: translateX(20px) translateY(-10px); opacity: 0.06; }
+        }
+        @keyframes gunSmoke {
+            0% { opacity: 0.8; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-30px) scale(2); }
+        }
+        @keyframes muzzleFlash {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.5); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+        @keyframes highNoonPulse {
+            0%, 100% { text-shadow: 0 0 10px #d4af37, 0 0 20px #e67e22, 0 0 30px #c0392b; }
+            50% { text-shadow: 0 0 20px #d4af37, 0 0 40px #e67e22, 0 0 60px #c0392b; }
+        }
+        @keyframes sunRays {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes recoil {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-2deg); }
+            75% { transform: translateX(3px) rotate(1deg); }
+            100% { transform: translateX(0); }
+        }
+        @keyframes bulletLoad {
+            0% { transform: scale(0) rotate(-180deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Crimson Text', serif;
+            background: linear-gradient(180deg, #1a0f0a 0%, #2d1810 100%);
+            color: var(--parchment);
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+            animation: dustDrift 8s ease-in-out infinite;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 150px;
+            background: linear-gradient(to top, rgba(160, 130, 109, 0.15) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 999;
+        }
+        #app { max-width: 480px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px 20px;
+            background: linear-gradient(135deg, var(--rusty-red) 0%, var(--dark-leather) 100%);
+            border: 4px solid var(--gold);
+            border-radius: 8px;
+            box-shadow: 0 8px 20px var(--shadow), inset 0 2px 10px rgba(212, 175, 55, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L35 20 L50 20 L38 30 L43 45 L30 35 L17 45 L22 30 L10 20 L25 20 Z' fill='%23d4af37' fill-opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .header::after {
+            content: '⋆ ⋆ ⋆';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--gold);
+            opacity: 0.5;
+            font-size: 0.8rem;
+            letter-spacing: 10px;
+        }
+        .title {
+            font-family: 'Rye', cursive;
+            font-size: 2rem;
+            color: #f4d03f;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 3px 3px 8px rgba(0,0,0,0.9);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        .subtitle { font-size: 0.9rem; color: var(--desert-sand); font-style: italic; }
+        .screen { display: none; animation: fadeIn 0.3s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card {
+            background: linear-gradient(135deg, var(--dark-leather) 0%, #1a0f0a 100%);
+            border: 2px solid var(--desert-sand);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px var(--shadow), inset 0 1px 0 rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100' height='100' fill='none'/%3E%3Cpath d='M0 50 Q25 45 50 50 T100 50' stroke='%23d4a574' stroke-width='0.5' fill='none' opacity='0.05'/%3E%3Cpath d='M0 30 Q25 25 50 30 T100 30' stroke='%23d4a574' stroke-width='0.5' fill='none' opacity='0.03'/%3E%3Cpath d='M0 70 Q25 65 50 70 T100 70' stroke='%23d4a574' stroke-width='0.5' fill='none' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            border-radius: 6px;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            margin: 8px 0;
+            border: 2px solid var(--gold);
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--rusty-red) 0%, var(--dark-leather) 100%);
+            color: var(--parchment);
+            font-family: 'Crimson Text', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        .btn:hover::after { left: 100%; }
+        .btn:active { transform: scale(0.98); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .btn-primary {
+            background: linear-gradient(135deg, #f4d03f 0%, var(--gold) 50%, #b8941f 100%);
+            color: var(--dark-leather);
+            font-weight: 700;
+            border-color: #8b6914;
+            text-shadow: none;
+        }
+        .btn-action {
+            position: relative;
+        }
+        .btn-action:active {
+            animation: recoil 0.2s ease;
+        }
+        input { width: 100%; padding: 12px; border: 2px solid var(--desert-sand); border-radius: 6px; background: rgba(244, 232, 208, 0.1); color: var(--parchment); font-family: 'Crimson Text', serif; font-size: 1.1rem; margin: 10px 0; }
+        .game-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(58, 58, 58, 0.5);
+            border-left: 4px solid var(--gold);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .achievement-popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 90%; max-width: 350px;
+            background: linear-gradient(135deg, var(--gold) 0%, #d4a574 100%);
+            border: 4px solid var(--dark-leather);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .achievement-popup.show { transform: translate(-50%, -50%) scale(1); }
+        .ach-icon { font-size: 4rem; }
+        .ach-title { font-family: 'Rye', cursive; font-size: 1.5rem; color: var(--dark-leather); margin: 15px 0; }
+        .cloud-badge { display: inline-block; padding: 4px 12px; background: #4CAF50; color: white; border-radius: 12px; font-size: 0.85rem; margin-left: 10px; }
+        .firebase-badge { display: inline-block; padding: 4px 12px; background: #FFA000; color: white; border-radius: 12px; font-size: 0.85rem; margin-left: 10px; }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--desert-sand);
+            border-radius: 6px;
+            background: rgba(58, 58, 58, 0.3);
+            color: var(--parchment);
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .tab.active {
+            background: var(--gold);
+            color: var(--dark-leather);
+            border-color: var(--gold);
+        }
+
+        /* High Noon styling */
+        .high-noon {
+            animation: highNoonPulse 1s ease-in-out infinite;
+            font-family: 'Rye', cursive;
+            color: var(--gold) !important;
+            font-size: 1.8rem !important;
+        }
+        .sun-container {
+            position: relative;
+            display: inline-block;
+        }
+        .sun-rays {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 80px; height: 80px;
+            margin: -40px 0 0 -40px;
+            animation: sunRays 20s linear infinite;
+            pointer-events: none;
+        }
+        .clock-display {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, rgba(45, 24, 16, 0.9) 0%, rgba(26, 15, 10, 0.9) 100%);
+            border: 2px solid var(--gold);
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 2px 10px rgba(212, 175, 55, 0.1);
+        }
+        .bullet-display {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+        .bullet {
+            width: 8px;
+            height: 16px;
+            background: linear-gradient(180deg, #c9a227 0%, #8b6914 100%);
+            border-radius: 2px 2px 4px 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .bullet.empty {
+            background: rgba(100, 100, 100, 0.3);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .bullet.new {
+            animation: bulletLoad 0.3s ease-out;
+        }
+        .smoke-effect {
+            position: absolute;
+            width: 20px; height: 20px;
+            background: radial-gradient(circle, rgba(200,200,200,0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: gunSmoke 0.5s ease-out forwards;
+            pointer-events: none;
+        }
+        .player-card {
+            background: linear-gradient(135deg, rgba(58, 58, 58, 0.6) 0%, rgba(30, 30, 30, 0.8) 100%);
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+        .player-card.you {
+            border-color: var(--gold);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+        }
+        .player-name {
+            font-family: 'Rye', cursive;
+            color: var(--gold);
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .action-panel {
+            background: linear-gradient(135deg, var(--rusty-red) 0%, #5a1f1f 100%);
+            border: 2px solid var(--gold);
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .action-panel::before {
+            content: '🎯 DRAW!';
+            position: absolute;
+            top: -8px; left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold);
+            color: var(--dark-leather);
+            padding: 2px 15px;
+            border-radius: 10px;
+            font-family: 'Rye', cursive;
+            font-size: 0.8rem;
+        }
+        .round-log {
+            background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, rgba(58, 58, 58, 0.5) 0%, rgba(30, 30, 30, 0.5) 100%);
+            border-left: 4px solid var(--gold);
+            border-radius: 0 6px 6px 0;
+            position: relative;
+        }
+        .log-entry::before {
+            content: '';
+            position: absolute;
+            left: -4px; top: 0; bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--gold) 0%, var(--sunset-orange) 100%);
+        }
+
+        /* Round Resolution Animations */
+        @keyframes actionReveal {
+            0% { transform: rotateY(180deg); opacity: 0; }
+            50% { transform: rotateY(90deg); opacity: 0.5; }
+            100% { transform: rotateY(0deg); opacity: 1; }
+        }
+        @keyframes shootFlash {
+            0% { background: transparent; box-shadow: none; }
+            20% { background: rgba(255, 200, 50, 0.4); box-shadow: 0 0 30px rgba(255, 200, 50, 0.8); }
+            100% { background: transparent; box-shadow: none; }
+        }
+        @keyframes hitShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px) rotate(-2deg); }
+            40% { transform: translateX(8px) rotate(2deg); }
+            60% { transform: translateX(-4px) rotate(-1deg); }
+            80% { transform: translateX(4px) rotate(1deg); }
+        }
+        @keyframes winGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(76, 175, 80, 0.9), 0 0 40px rgba(76, 175, 80, 0.5); }
+        }
+        @keyframes fadeSlideIn {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .action-reveal { animation: actionReveal 0.6s ease-out; }
+        .shoot-flash { animation: shootFlash 0.4s ease-out; }
+        .hit-shake { animation: hitShake 0.5s ease-out; }
+        .win-glow { animation: winGlow 1s ease-in-out infinite; }
+        .fade-slide-in { animation: fadeSlideIn 0.4s ease-out; }
+
+        .showdown-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+        }
+        .showdown-title {
+            font-family: 'Rye', cursive;
+            font-size: 2rem;
+            color: #f4d03f;
+            text-shadow: 2px 2px 0 #000, 0 0 20px rgba(212, 175, 55, 0.5);
+            margin-bottom: 30px;
+        }
+        .showdown-cards {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .showdown-card {
+            background: linear-gradient(135deg, var(--dark-leather) 0%, #1a0f0a 100%);
+            border: 3px solid var(--gold);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .showdown-card.winner { border-color: #4CAF50; }
+        .showdown-card.loser { border-color: #c0392b; }
+        .showdown-action {
+            font-size: 2.5rem;
+            margin: 10px 0;
+        }
+        .showdown-result {
+            font-family: 'Rye', cursive;
+            font-size: 1.5rem;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <div class="title" id="gameTitle">🤠 WILD WEST SHOOTOUT 🔫</div>
+            <div class="subtitle">Cloud Edition <span class="cloud-badge">☁️ SYNCED</span> <span class="firebase-badge">🔥 REALTIME</span></div>
+        </div>
+        <div id="content"></div>
+    </div>
+    <div id="showdownOverlay" class="showdown-overlay" style="display:none"></div>
+    <div id="achievementPopup" class="achievement-popup">
+        <div class="ach-icon" id="popupIcon">🏆</div>
+        <div class="ach-title">ACHIEVEMENT UNLOCKED!</div>
+        <div id="popupName" style="font-size: 1.2rem; color: var(--dark-leather); margin-bottom: 10px;"></div>
+        <div id="popupDesc" style="color: var(--dark-leather);"></div>
+        <button class="btn" onclick="closeAchievement()" style="margin-top: 20px; background: var(--dark-leather); color: var(--gold);">Sweet! 🤠</button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
+
+    <script>
+// ============================================================================
+// SVG GENERATORS - Western themed inline SVGs
+// ============================================================================
+function svgClock(hour){
+    const angle = (hour * 30) - 90; // 30 degrees per hour, starting from 12 o'clock
+    const rad = angle * Math.PI / 180;
+    const handX = 20 + Math.cos(rad) * 12;
+    const handY = 20 + Math.sin(rad) * 12;
+    const isNoon = hour === 12;
+    return `<svg width="40" height="40" viewBox="0 0 40 40" style="vertical-align:middle">
+        <defs>
+            <radialGradient id="clockFace${hour}" cx="50%" cy="30%" r="60%">
+                <stop offset="0%" stop-color="#f4e8d0"/>
+                <stop offset="100%" stop-color="#d4a574"/>
+            </radialGradient>
+            ${isNoon?`<filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`:''}
+        </defs>
+        <circle cx="20" cy="20" r="18" fill="url(#clockFace${hour})" stroke="#8b6914" stroke-width="2"/>
+        <circle cx="20" cy="20" r="15" fill="none" stroke="#2d1810" stroke-width="0.5" opacity="0.3"/>
+        ${[12,3,6,9].map(h=>{const a=(h*30-90)*Math.PI/180;const x=20+Math.cos(a)*13;const y=20+Math.sin(a)*13;return`<circle cx="${x}" cy="${y}" r="1.5" fill="#2d1810"/>`}).join('')}
+        <line x1="20" y1="20" x2="${handX}" y2="${handY}" stroke="${isNoon?'#c0392b':'#2d1810'}" stroke-width="${isNoon?3:2}" stroke-linecap="round" ${isNoon?'filter="url(#glow)"':''}/>
+        <circle cx="20" cy="20" r="2" fill="#2d1810"/>
+        ${isNoon?`<circle cx="20" cy="20" r="22" fill="none" stroke="#d4af37" stroke-width="1" opacity="0.5"/>`:''}
+    </svg>`;
+}
+
+function svgSun(){
+    return `<svg class="sun-rays" viewBox="0 0 100 100">
+        <defs>
+            <linearGradient id="rayGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#d4af37" stop-opacity="0"/>
+                <stop offset="50%" stop-color="#e67e22" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#d4af37" stop-opacity="0"/>
+            </linearGradient>
+        </defs>
+        ${Array(12).fill(0).map((_,i)=>`<line x1="50" y1="50" x2="50" y2="5" stroke="url(#rayGrad)" stroke-width="2" transform="rotate(${i*30} 50 50)"/>`).join('')}
+    </svg>`;
+}
+
+function svgRevolver(loaded=0){
+    const chambers = Array(6).fill(0).map((_,i)=>{
+        const angle = (i * 60 - 90) * Math.PI / 180;
+        const cx = 15 + Math.cos(angle) * 6;
+        const cy = 12 + Math.sin(angle) * 6;
+        const isFilled = i < loaded;
+        return `<circle cx="${cx}" cy="${cy}" r="2.5" fill="${isFilled?'#c9a227':'#1a0f0a'}" stroke="#666" stroke-width="0.5"/>`;
+    }).join('');
+    return `<svg width="35" height="24" viewBox="0 0 35 24" style="vertical-align:middle">
+        <rect x="18" y="9" width="16" height="6" rx="1" fill="#4a4a4a" stroke="#2d1810" stroke-width="0.5"/>
+        <circle cx="15" cy="12" r="9" fill="#5a5a5a" stroke="#2d1810" stroke-width="1"/>
+        <circle cx="15" cy="12" r="7" fill="#3a3a3a"/>
+        ${chambers}
+        <rect x="1" y="8" width="8" height="8" rx="2" fill="#8b4513" stroke="#5d2e0a" stroke-width="0.5"/>
+        <line x1="2" y1="9" x2="2" y2="15" stroke="#a0522d" stroke-width="0.5"/>
+        <line x1="4" y1="9" x2="4" y2="15" stroke="#a0522d" stroke-width="0.5"/>
+    </svg>`;
+}
+
+function svgBullets(count, max=6){
+    return `<span class="bullet-display">${Array(max).fill(0).map((_,i)=>`<span class="bullet ${i>=count?'empty':''}"></span>`).join('')}</span>`;
+}
+
+function svgCowboy(isYou=false){
+    const color = isYou ? '#d4af37' : '#d4a574';
+    return `<svg width="24" height="24" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:5px">
+        <ellipse cx="12" cy="6" rx="8" ry="2" fill="${color}"/>
+        <rect x="8" y="4" width="8" height="4" fill="${color}"/>
+        <ellipse cx="12" cy="4" rx="5" ry="2" fill="${color}"/>
+        <circle cx="12" cy="14" r="5" fill="${color}"/>
+        <rect x="10" y="18" width="4" height="4" fill="${color}"/>
+    </svg>`;
+}
+
+// Title revolver SVG - detailed western revolver
+function svgTitleRevolver(flip=false){
+    const transform = flip ? 'transform="scale(-1,1) translate(-32,0)"' : '';
+    return `<svg width="32" height="28" viewBox="0 0 32 28" style="vertical-align:middle;margin:0 5px">
+        <g ${transform}>
+            <rect x="14" y="10" width="17" height="7" rx="1" fill="#b8b8b8"/>
+            <rect x="14" y="11" width="17" height="2" fill="#d4d4d4"/>
+            <rect x="28" y="9" width="3" height="9" rx="1" fill="#888"/>
+            <circle cx="11" cy="13" r="8" fill="#6a6a6a" stroke="#444" stroke-width="1"/>
+            <circle cx="11" cy="13" r="6" fill="#4a4a4a"/>
+            ${Array(6).fill(0).map((_,i)=>{
+                const a=(i*60-90)*Math.PI/180;
+                const cx=11+Math.cos(a)*4;
+                const cy=13+Math.sin(a)*4;
+                return `<circle cx="${cx}" cy="${cy}" r="1.8" fill="#c9a227" stroke="#8b6914" stroke-width="0.5"/>`;
+            }).join('')}
+            <rect x="1" y="10" width="7" height="10" rx="2" fill="#8b4513"/>
+            <rect x="1" y="11" width="7" height="2" fill="#a0522d"/>
+            <line x1="3" y1="11" x2="3" y2="19" stroke="#6b3510" stroke-width="1"/>
+            <line x1="6" y1="11" x2="6" y2="19" stroke="#6b3510" stroke-width="1"/>
+            <rect x="5" y="18" width="4" height="6" rx="1" fill="#5d2e0a"/>
+        </g>
+    </svg>`;
+}
+
+// Detailed cowboy outlaw character
+function svgOutlaw(facing='right', isYou=false, size=50){
+    const color = isYou ? '#d4af37' : '#d4a574';
+    const darker = isYou ? '#b8941f' : '#a08060';
+    const scale = size / 50;
+    const flip = facing === 'left' ? `transform="scale(-1,1) translate(-${40*scale},0)"` : '';
+    return `<svg width="${40*scale}" height="${50*scale}" viewBox="0 0 40 50" style="vertical-align:middle">
+        <g ${flip}>
+            <!-- Hat brim -->
+            <ellipse cx="20" cy="10" rx="16" ry="4" fill="${color}"/>
+            <!-- Hat crown -->
+            <path d="M10 10 L12 3 L28 3 L30 10 Z" fill="${color}"/>
+            <ellipse cx="20" cy="3" rx="8" ry="2" fill="${darker}"/>
+            <!-- Hat band -->
+            <rect x="10" y="8" width="20" height="2" fill="${darker}"/>
+            <!-- Head -->
+            <circle cx="20" cy="18" r="6" fill="${color}"/>
+            <!-- Bandana/mask -->
+            <path d="M14 17 L20 22 L26 17 L26 20 L20 25 L14 20 Z" fill="#c0392b"/>
+            <!-- Body/poncho -->
+            <path d="M10 24 L8 40 L20 38 L32 40 L30 24 Z" fill="${color}"/>
+            <path d="M12 26 L20 36 L28 26" fill="none" stroke="${darker}" stroke-width="1"/>
+            <!-- Arms -->
+            <rect x="4" y="28" width="8" height="4" rx="2" fill="${color}"/>
+            <rect x="28" y="28" width="8" height="4" rx="2" fill="${color}"/>
+            <!-- Gun in hand -->
+            <rect x="32" y="29" width="6" height="3" fill="#666"/>
+            <!-- Legs -->
+            <rect x="14" y="38" width="5" height="10" fill="${darker}"/>
+            <rect x="21" y="38" width="5" height="10" fill="${darker}"/>
+            <!-- Boots -->
+            <rect x="13" y="46" width="7" height="4" rx="1" fill="#3d2010"/>
+            <rect x="20" y="46" width="7" height="4" rx="1" fill="#3d2010"/>
+            <!-- Belt with holster -->
+            <rect x="10" y="36" width="20" height="3" fill="#5d2e0a"/>
+            <rect x="6" y="35" width="5" height="8" rx="1" fill="#5d2e0a"/>
+        </g>
+    </svg>`;
+}
+
+// Action icons for showdown
+function svgActionIcon(action){
+    const icons = {
+        0: `<svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#2d1810" stroke="#d4af37" stroke-width="2"/><circle cx="24" cy="24" r="8" fill="#c9a227"/><text x="24" y="29" text-anchor="middle" fill="#2d1810" font-size="14" font-weight="bold">+1</text></svg>`,
+        1: `<svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#2d1810" stroke="#d4af37" stroke-width="2"/><path d="M24 8 L24 16 M24 32 L24 40 M8 24 L16 24 M32 24 L40 24" stroke="#4CAF50" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="24" r="10" fill="none" stroke="#4CAF50" stroke-width="3"/></svg>`,
+        2: `<svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#c0392b" stroke="#d4af37" stroke-width="2"/><polygon points="24,10 28,20 40,20 30,28 34,40 24,32 14,40 18,28 8,20 20,20" fill="#f4d03f"/></svg>`
+    };
+    return icons[action] || '';
+}
+
+// ============================================================================
+// SECURITY UTILITIES - XSS Prevention & Input Validation
+// ============================================================================
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function isValidUsername(name) {
+    return /^[a-zA-Z0-9_]{2,15}$/.test(name);
+}
+
+// ============================================================================
+// FIREBASE CONFIGURATION - Replace with your config!
+// ============================================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyDFkmCeGZtaL8C_MT7tLLkrwHdipIAwwMc",
+    authDomain: "matrix-83530.firebaseapp.com",
+    databaseURL: "https://matrix-83530-default-rtdb.firebaseio.com",
+    projectId: "matrix-83530",
+    storageBucket: "matrix-83530.firebasestorage.app",
+    messagingSenderId: "6687560393",
+    appId: "1:6687560393:web:1d6ee12cf51ef40d167318"
+};
+
+// Initialize Firebase
+let db = null;
+let functions = null;
+let authReady = false;
+try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    functions = firebase.functions();
+    // Sign in anonymously for anti-cheat
+    firebase.auth().signInAnonymously().then(() => {
+        authReady = true;
+        console.log('🔐 Anonymous auth ready');
+    }).catch(e => console.error('Auth error:', e));
+    console.log('🔥 Firebase connected!');
+} catch(e) {
+    console.error('Firebase init error:', e);
+}
+
+// Cloud Functions references (for future Blaze plan upgrade)
+// const createGameFn = functions ? functions.httpsCallable('createGame') : null;
+// const joinGameFn = functions ? functions.httpsCallable('joinGame') : null;
+// const submitActionFn = functions ? functions.httpsCallable('submitAction') : null;
+// const getOpenGamesFn = functions ? functions.httpsCallable('getOpenGames') : null;
+// const leaveGameFn = functions ? functions.httpsCallable('leaveGame') : null;
+
+// Helper: Generate game ID
+function generateGameId() {
+    return Math.random().toString(36).substr(2, 8).toUpperCase();
+}
+
+// Game logic functions (client-side for now, server-side when Blaze available)
+function calcWinner(p1Action, p1Bullets, p2Action, p2Bullets) {
+    if (p1Action === 2 && p1Bullets > 0 && p2Action === 0) return 1;
+    if (p2Action === 2 && p2Bullets > 0 && p1Action === 0) return 2;
+    if (p1Action === 2 && p1Bullets === 0) return 2;
+    if (p2Action === 2 && p2Bullets === 0) return 1;
+    return 0;
+}
+
+function calculateNewBullets(action, currentBullets) {
+    if (action === 0) return Math.min(6, currentBullets + 1);
+    if (action === 2 && currentBullets > 0) return currentBullets - 1;
+    return currentBullets;
+}
+
+// ============================================================================
+// CLOUD API CONFIGURATION (for stats/auth/leaderboards)
+// ============================================================================
+const API_URL = 'https://web-production-6d9e.up.railway.app';
+let user=null,game=null,ai=null,log=[],currentAchQueue=[],gameRef=null;
+const S='shootout_local';
+
+// AI Classes
+class AI{constructor(n,i,d){this.n=n;this.i=i;this.d=d;this.h=[];}a(mb,ob,r){return 0;}m(v){this.h.push(v);if(this.h.length>10)this.h.shift();}}
+class R extends AI{constructor(){super('Rookie','😰','⭐');}a(mb){return Math.random()<0.4?~~(Math.random()*3):(Math.random()<0.7?0:1);}}
+class Q extends AI{constructor(){super('Quick Draw','⚡','⭐⭐');}a(mb){return mb>=2&&Math.random()<0.7?2:0;}}
+class Sh extends AI{constructor(){super('Sheriff','🛡️','⭐⭐⭐');}a(mb){return mb<5?0:(Math.random()<0.3?1:2);}}
+class M extends AI{constructor(){super('Mad Dog','🎲','⭐⭐⭐');}a(mb){let c=~~(Math.random()*3);return c===2&&mb===0?~~(Math.random()*2):c;}}
+class Gu extends AI{constructor(){super('Gunslinger','🎯','⭐⭐⭐⭐');}a(mb,ob,r){if(r<=3)return mb<4?0:(Math.random()<0.5?1:2);let rm=this.h.slice(-5),lc=rm.filter(m=>m===0).length;if(lc>3&&mb>0)return 2;return mb<3?0:(mb>5&&ob<3?2:(Math.random()<0.4?1:0));}}
+class N extends AI{constructor(){super('Natural','👁️','⭐⭐⭐⭐⭐');}a(mb,ob){if(ob===0&&mb>0)return 2;if(mb>=5&&ob<=2)return Math.random()<0.7?2:1;if(mb<=2&&ob>=4)return Math.random()<0.6?1:0;if(mb<4)return Math.random()<0.6?0:1;let r=Math.random();return r<0.4?2:(r<0.7?1:0);}}
+const AIs={r:new R(),q:new Q(),s:new Sh(),m:new M(),g:new Gu(),n:new N()};
+
+// Achievements
+const ACH={
+'grad':{i:'🎓',n:'Graduation',d:'Beat Rookie'},
+'qd':{i:'⚡',n:'Quick Draw',d:'Beat Quick Draw'},
+'lo':{i:'🛡️',n:'Law & Order',d:'Beat Sheriff'},
+'cm':{i:'🎲',n:'Chaos Master',d:'Beat Mad Dog'},
+'ss':{i:'🎯',n:'Sharpshooter',d:'Beat Gunslinger'},
+'ns':{i:'👁️',n:'Natural Slayer',d:'Beat Natural'},
+'sg':{i:'🧠',n:'Student Gun',d:'Beat all AI'},
+'hs':{i:'🔥',n:'Hot Streak',d:'10 AI win streak'},
+'ic':{i:'❄️',n:'Ice Cold',d:'20 AI win streak'},
+'lr':{i:'⚡',n:'Lightning',d:'Win in ≤3 rounds'},
+'mk':{i:'🔫',n:'Marksman',d:'100 AI wins'},
+'dom':{i:'🏆',n:'AI Dominator',d:'500 AI wins'},
+'nk':{i:'👑',n:'Natural Killer',d:'Beat Natural 10x'},
+'fb':{i:'🥇',n:'First Blood',d:'First PvP win'},
+'du':{i:'⚔️',n:'Duelist',d:'10 PvP games'},
+'ve':{i:'🎖️',n:'Veteran',d:'100 PvP games'},
+'ct':{i:'💯',n:'Centurion',d:'100 PvP wins'}
+};
+
+// API Helper (for stats only)
+async function api(endpoint,method='GET',data=null){try{const opt={method,headers:{'Content-Type':'application/json'}};if(data)opt.body=JSON.stringify(data);const r=await fetch(API_URL+endpoint,opt);return await r.json();}catch(e){console.error('API:',e);return null;}}
+
+// Auth
+async function doLogin(){const un=document.getElementById('usernameInput').value.trim();const pw=document.getElementById('passwordInput').value.trim();if(!un||!pw){alert('Enter username and password!');return;}
+if(!isValidUsername(un)){alert('Username must be 2-15 characters (letters, numbers, underscore only)');return;}
+show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">☁️</div><div style="color:#d4a574">Connecting to cloud...</div></div>`);
+let result=await api('/api/login','POST',{username:un,password:pw});
+if(!result||result.error){result=await api('/api/register','POST',{username:un,password:pw});if(result&&result.success){alert('✅ Account created!');}else{alert('❌ '+(result?.error||'Connection failed'));show(loginScreen());return;}}
+const stats=await api('/api/stats/'+un);user={username:un,...stats};if(!user.ai_stats)user.ai_stats={};if(!user.achievements)user.achievements=[];if(!user.pvp)user.pvp={wins:0,losses:0,draws:0,games:0,streak:0,best_streak:0};
+localStorage.setItem(S,JSON.stringify({un,pw}));menu();}
+
+function loginScreen(){return`<div class="card"><h2 style="text-align:center;color:var(--gold);margin-bottom:20px">Welcome, Partner!</h2>
+<input type="text" id="usernameInput" placeholder="Username" maxlength="20">
+<input type="password" id="passwordInput" placeholder="Password">
+<button class="btn btn-primary" onclick="doLogin()">🎯 Enter Saloon</button>
+<div style="text-align:center;color:#d4a574;font-size:0.9rem;margin-top:15px">☁️ Cloud Sync • 🔥 Firebase Realtime PvP</div></div>`;}
+
+// Sync stats to cloud
+async function sync(){if(!user)return;await api('/api/stats/'+user.username,'POST',{ai_stats:user.ai_stats||{},pvp_wins:user.pvp?.wins||0,pvp_losses:user.pvp?.losses||0,pvp_draws:user.pvp?.draws||0,pvp_games:user.pvp?.games||0,pvp_streak:user.pvp?.streak||0,pvp_best_streak:user.pvp?.best_streak||0,total_wagered:user.total_wagered||0,achievements:user.achievements||[],total_wins:user.total_wins||0,total_draws:user.total_draws||0});}
+
+// UI Functions
+function show(h){document.getElementById('content').innerHTML=h;}
+
+function menu(){show(`<div class="card"><h2 style="text-align:center;color:var(--gold);margin-bottom:20px">Main Menu</h2>
+<button class="btn btn-primary" onclick="aiMenu()">🎯 Practice vs AI</button>
+<button class="btn" onclick="pvpCreate()">🎰 Create Wager Match</button>
+<button class="btn" onclick="pvpJoin()">⚔️ Join Wager Match</button>
+<button class="btn" onclick="stats()">📊 My Stats</button>
+<button class="btn" onclick="achievements()">🎖️ Achievements</button>
+<button class="btn" onclick="leaderboards()">🏆 Leaderboards</button></div>
+<div style="text-align:center;color:#d4a574;margin-top:10px">👤 ${escapeHtml(user.username)} <span class="cloud-badge">☁️ SYNCED</span></div>`);}
+
+function aiMenu(){show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">Choose Opponent</h2>
+${Object.entries(AIs).map(([k,v])=>`<div class="game-item" onclick="startAI('${k}')"><div style="font-size:2rem">${v.i}</div><div style="font-weight:700;color:#d4af37">${v.n}</div><div style="font-size:0.9rem;color:#d4a574">${v.d}</div></div>`).join('')}
+<button class="btn" onclick="menu()">⬅️ Back</button></div>`);}
+
+function stats(){const aiWins=Object.values(user.ai_stats||{}).reduce((a,v)=>a+(v.w||0),0);const aiLosses=Object.values(user.ai_stats||{}).reduce((a,v)=>a+(v.l||0),0);
+show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">Your Stats</h2>
+<h3 style="color:#d4af37;margin-top:20px">🎯 AI Practice</h3>
+<div style="background:rgba(58,58,58,0.5);padding:15px;border-radius:6px;margin:10px 0"><div style="font-size:1.5rem;color:#d4af37">${aiWins}-${aiLosses}</div><div style="color:#d4a574">Win-Loss Record</div></div>
+${Object.entries(user.ai_stats||{}).map(([k,v])=>`<div style="padding:10px;margin:5px 0;background:rgba(58,58,58,0.3);border-radius:4px"><span style="font-weight:600">${k}:</span> ${v.w||0}-${v.l||0} (${(v.w||0)+(v.l||0)>0?Math.round((v.w||0)/((v.w||0)+(v.l||0))*100):0}%)</div>`).join('')}
+<h3 style="color:#d4af37;margin-top:20px">⚔️ PvP</h3>
+<div style="background:rgba(58,58,58,0.5);padding:15px;border-radius:6px;margin:10px 0"><div style="font-size:1.5rem;color:#d4af37">${user.pvp?.wins||0}-${user.pvp?.losses||0}-${user.pvp?.draws||0}</div><div style="color:#d4a574">PvP Record</div></div>
+<button class="btn" onclick="menu()">⬅️ Back</button></div>`);}
+
+function achievements(){const a=user.achievements||[];show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">Achievements (${a.length}/${Object.keys(ACH).length})</h2>
+${Object.entries(ACH).map(([k,v])=>{const un=a.includes(k);return`<div class="game-item" style="opacity:${un?1:0.5}"><span style="font-size:2rem">${v.i}</span> <span style="font-weight:700;color:${un?'#d4af37':'#666'}">${v.n}</span><div style="font-size:0.9rem;color:#d4a574">${v.d}</div></div>`;}).join('')}
+<button class="btn" onclick="menu()">⬅️ Back</button></div>`);}
+
+let currentLeaderboardTab='ai';
+async function leaderboards(tab='ai'){currentLeaderboardTab=tab;show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">🏆 Leaderboards</h2>
+<div class="tabs">
+<div class="tab ${tab==='ai'?'active':''}" onclick="leaderboards('ai')">🎯 AI</div>
+<div class="tab ${tab==='pvp'?'active':''}" onclick="leaderboards('pvp')">⚔️ PvP</div>
+</div>
+<div style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">📊</div><div style="color:#d4a574">Loading...</div></div></div>`);
+const endpoint=tab==='ai'?'/api/leaderboard/ai/wins':'/api/leaderboard/pvp/wins';
+const result=await api(endpoint+'?limit=10');
+if(result&&result.leaderboard){const board=result.leaderboard;
+show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">🏆 Leaderboards</h2>
+<div class="tabs">
+<div class="tab ${tab==='ai'?'active':''}" onclick="leaderboards('ai')">🎯 AI</div>
+<div class="tab ${tab==='pvp'?'active':''}" onclick="leaderboards('pvp')">⚔️ PvP</div>
+</div>
+<h3 style="color:#d4af37;text-align:center;margin:15px 0">${tab==='ai'?'Most AI Wins':'Most PvP Wins'}</h3>
+${board.length>0?board.map((e,i)=>`<div style="padding:12px;margin:8px 0;background:rgba(58,58,58,0.5);border-left:4px solid #d4af37;border-radius:4px">
+<span style="font-size:1.5rem;margin-right:15px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)}</span>
+<span style="font-weight:700;color:#f4e8d0">${escapeHtml(e.username)}</span>
+<span style="float:right;font-size:1.2rem;color:#d4af37">${Math.round(e.value)}</span></div>`).join(''):'<div style="text-align:center;color:#d4a574;padding:20px">No data yet - be the first!</div>'}
+<button class="btn" onclick="menu()">⬅️ Back</button></div>`);}else{show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">❌ Connection Error</h2><button class="btn" onclick="menu()">⬅️ Back</button></div>`);}}
+
+// ============================================================================
+// PvP Functions - FIREBASE REALTIME
+// ============================================================================
+function pvpCreate(){
+if(!db){alert('Firebase not configured! Add your Firebase config.');return;}
+show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">Create Match</h2>
+<div style="margin:20px 0"><label style="display:block;margin-bottom:8px;color:#d4a574;font-weight:600">💰 Wager Amount (XCH):</label>
+<input type="number" id="betInput" placeholder="0.5" step="0.1" min="0.01"></div>
+<button class="btn btn-primary" onclick="doCreatePvP()">🔫 Create Game</button>
+<button class="btn" onclick="menu()">⬅️ Back</button></div>`);}
+
+async function doCreatePvP(){
+const bet=document.getElementById('betInput').value;
+if(!bet||bet<=0){alert('Enter valid bet!');return;}
+if(!authReady){alert('Authentication not ready. Please wait.');return;}
+console.log('doCreatePvP: Creating game with bet', bet);
+show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">⏳</div><div style="color:#d4a574">Creating game...</div></div>`);
+try {
+    // Direct database write (Firebase Rules validate)
+    const gid = generateGameId();
+    const gameData = {
+        id: gid,
+        p1: user.username,
+        p1_uid: firebase.auth().currentUser.uid,
+        p2: null,
+        p2_uid: null,
+        bet: parseFloat(bet),
+        round: 1,
+        p1_bullets: 0,
+        p2_bullets: 0,
+        p1_action: null,
+        p2_action: null,
+        status: 'WAITING',
+        created: Date.now()
+    };
+    await db.ref('games/' + gid).set(gameData);
+    console.log('doCreatePvP: Game created:', gid);
+    game=gid;log=[];
+    show(`<div class="card" style="background:linear-gradient(135deg,#d4af37 0%,#d4a574 100%);color:#2d1810"><h2 style="text-align:center">✅ Game Created!</h2>
+    <div style="text-align:center;margin:20px 0"><div style="font-size:0.9rem;margin-bottom:8px">Share this ID:</div><div style="font-family:'Rye',cursive;font-size:2rem;letter-spacing:3px">${gid}</div>
+    <button class="btn" onclick="copyID('${gid}')" style="margin-top:15px;background:#2d1810;color:#d4af37">📋 Copy ID</button></div>
+    <div style="text-align:center;font-style:italic">🔥 Waiting for opponent (realtime)...</div></div>
+    <button class="btn" onclick="leavePvP()">⬅️ Back</button>`);
+    listenToGame(gid);
+} catch(e) {
+    console.error('doCreatePvP error:', e);
+    alert('Error creating game: ' + e.message);
+    menu();
+}}
+
+async function pvpJoin(){
+if(!db){alert('Firebase not configured!');return;}
+if(!authReady){alert('Authentication not ready. Please wait.');return;}
+console.log('pvpJoin: Loading open games...');
+show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">⏳</div><div style="color:#d4a574">Loading open games...</div></div>`);
+try {
+    // Direct database query for open games
+    const myUid = firebase.auth().currentUser.uid;
+    const snapshot = await db.ref('games').orderByChild('status').equalTo('WAITING').limitToFirst(20).once('value');
+    const open = [];
+    snapshot.forEach((child) => {
+        const g = child.val();
+        if (g.p1_uid !== myUid) {
+            open.push({ id: g.id, p1: g.p1, bet: g.bet });
+        }
+    });
+    console.log('pvpJoin: Open games:', open.length);
+    show(`<div class="card"><h2 style="text-align:center;color:var(--gold)">Join Match</h2>
+    <div style="margin:20px 0;padding:15px;background:rgba(212,175,55,0.1);border:2px solid var(--gold);border-radius:6px">
+    <label style="display:block;margin-bottom:8px;color:#d4a574;font-weight:600">✍️ Enter Game ID:</label>
+    <input type="text" id="manualGameId" placeholder="ABC12345" maxlength="8" style="text-transform:uppercase">
+    <button class="btn btn-primary" onclick="joinByManualId()" style="margin-top:10px">🎯 Join Game</button>
+    </div>
+    <h3 style="color:#d4af37;text-align:center;margin:20px 0">or pick from open games:</h3>
+    ${open.length>0?open.map(g=>`<div class="game-item" onclick="joinPvP('${escapeHtml(g.id)}')"><div style="font-weight:700;color:#d4af37">${escapeHtml(g.id)}</div><div style="color:#d4a574">👤 ${escapeHtml(g.p1)} | 💰 ${g.bet} XCH</div></div>`).join(''):'<div style="text-align:center;color:#d4a574;padding:20px">No open games - create one!</div>'}
+    <button class="btn" onclick="menu()">⬅️ Back</button></div>`);
+} catch(e) {
+    console.error('pvpJoin error:', e);
+    alert('Error loading games. Please try again.');
+    menu();
+}}
+
+function joinByManualId(){
+const id=document.getElementById('manualGameId').value.trim().toUpperCase();
+if(!id){alert('Enter a Game ID!');return;}
+if(id.length!==8){alert('Game ID should be 8 characters!');return;}
+joinPvP(id);}
+
+async function joinPvP(gid){
+console.log('joinPvP: Attempting to join game', gid);
+if(!authReady){alert('Authentication not ready. Please wait.');return;}
+show(`<div class="card" style="text-align:center;padding:40px"><div style="font-size:2rem;margin-bottom:20px">⏳</div><div style="color:#d4a574">Joining game...</div></div>`);
+try {
+    // Direct database write to join game
+    const myUid = firebase.auth().currentUser.uid;
+    const gameRef = db.ref('games/' + gid);
+    const snapshot = await gameRef.once('value');
+    const g = snapshot.val();
+
+    if (!g) {
+        alert('Game not found!');
+        pvpJoin();
+        return;
+    }
+    if (g.status !== 'WAITING') {
+        alert('Game already started or finished.');
+        pvpJoin();
+        return;
+    }
+    if (g.p1_uid === myUid) {
+        alert('Cannot join your own game!');
+        pvpJoin();
+        return;
+    }
+
+    // Join the game
+    await gameRef.update({
+        p2: user.username,
+        p2_uid: myUid,
+        status: 'PLAYING'
+    });
+    console.log('joinPvP: Successfully joined game');
+    game=gid;log=[];
+    listenToGame(gid);
+} catch(e) {
+    console.error('joinPvP error:', e);
+    alert('Error joining game: ' + e.message);
+    pvpJoin();
+}}
+
+function listenToGame(gid){
+console.log('listenToGame: Setting up listener for', gid);
+// Remove any existing listener
+if(gameRef){
+    console.log('listenToGame: Removing old listener');
+    gameRef.off();
+    gameRef=null;
+}
+// Set up realtime listener
+gameRef=db.ref('games/'+gid);
+gameRef.on('value',(snapshot)=>{
+    const g=snapshot.val();
+    console.log('listenToGame: Game update received', g?.status, 'Round:', g?.round);
+    if(!g){console.log('listenToGame: Game deleted, leaving');leavePvP();return;}
+    renderPvP(g);
+},(error)=>{
+    console.error('listenToGame error:', error);
+    console.error('Connection error:', error);alert('Connection error. Please try again.');
+    leavePvP();
+});}
+
+function renderPvP(g){
+try {
+console.log('renderPvP: Rendering game', g.id, 'status:', g.status, 'p1:', g.p1, 'p2:', g.p2);
+const an=['LOAD','DEFEND','SHOOT'];
+const myRole=g.p1===user.username?'p1':'p2';
+const oppRole=myRole==='p1'?'p2':'p1';
+const myAction=myRole==='p1'?g.p1_action:g.p2_action;
+const oppAction=oppRole==='p1'?g.p1_action:g.p2_action;
+const myBullets=myRole==='p1'?g.p1_bullets:g.p2_bullets;
+console.log('renderPvP: myRole:', myRole, 'myAction:', myAction, 'myBullets:', myBullets);
+
+// Server handles resolution - just sync local log from last_round data
+handleRoundResult(g);
+
+// Check for game end
+if(g.status==='FINISHED'){
+    console.log('renderPvP: Game finished');
+    showEndScreen(g);
+    return;
+}
+
+// Waiting for opponent to join
+if(g.status==='WAITING'){
+    console.log('renderPvP: Waiting for opponent');
+    show(`<div class="card" style="background:linear-gradient(135deg,#d4af37 0%,#d4a574 100%);color:#2d1810"><h2 style="text-align:center">✅ Game Created!</h2>
+    <div style="text-align:center;margin:20px 0"><div style="font-size:0.9rem;margin-bottom:8px">Share this ID:</div><div style="font-family:'Rye',cursive;font-size:2rem;letter-spacing:3px">${g.id}</div>
+    <button class="btn" onclick="copyID('${g.id}')" style="margin-top:15px;background:#2d1810;color:#d4af37">📋 Copy ID</button></div>
+    <div style="text-align:center;font-style:italic">🔥 Waiting for opponent...</div></div>
+    <button class="btn" onclick="leavePvP()">⬅️ Back</button>`);
+    return;
+}
+
+console.log('renderPvP: Rendering game UI for PLAYING state');
+const isHighNoon=g.round===12;
+
+// Render game UI with enhanced western styling
+show(`<div class="card">
+<div class="clock-display" style="display:block;text-align:center;margin-bottom:20px;padding:15px">
+    <div class="sun-container">
+        ${isHighNoon?svgSun():''}
+        ${svgClock(g.round)}
+        <span class="${isHighNoon?'high-noon':''}" style="margin-left:10px;font-size:${isHighNoon?'1.6rem':'1.3rem'};vertical-align:middle;color:#d4af37;font-family:'Rye',cursive">
+            ${isHighNoon?'HIGH NOON':g.round+':00'}
+        </span>
+        ${isHighNoon?' 🔥':''}
+    </div>
+</div>
+<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:20px">
+<div class="player-card ${myRole==='p1'?'you':''}" style="flex:1;display:flex;align-items:center;gap:10px">
+    ${svgOutlaw('right', myRole==='p1', 45)}
+    <div>
+        <div class="player-name">${escapeHtml(g.p1)}${myRole==='p1'?' <span style="font-size:0.7rem;color:#4CAF50">(YOU)</span>':''}</div>
+        <div style="display:flex;align-items:center;gap:5px">${svgRevolver(g.p1_bullets)} ${svgBullets(g.p1_bullets)}</div>
+    </div>
+</div>
+<div class="player-card ${myRole==='p2'?'you':''}" style="flex:1;display:flex;align-items:center;gap:10px;flex-direction:row-reverse">
+    ${svgOutlaw('left', myRole==='p2', 45)}
+    <div style="text-align:right">
+        <div class="player-name">${escapeHtml(g.p2)||'...'}${myRole==='p2'?' <span style="font-size:0.7rem;color:#4CAF50">(YOU)</span>':''}</div>
+        <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">${svgBullets(g.p2_bullets)} ${svgRevolver(g.p2_bullets)}</div>
+    </div>
+</div></div>
+${typeof myAction!=='number'?`<div class="action-panel"><h3 style="text-align:center;color:#f4e8d0;margin:10px 0 15px;font-family:'Smokum',cursive;font-size:1.4rem">Make Your Move</h3>
+<button class="btn btn-action" onclick="submitAction(0)">🔫 LOAD <span style="font-size:0.85rem;opacity:0.8">+1 Bullet</span></button>
+<button class="btn btn-action" onclick="submitAction(1)">🛡️ DEFEND <span style="font-size:0.85rem;opacity:0.8">Block Shot</span></button>
+<button class="btn btn-action" onclick="submitAction(2)" ${myBullets===0?'disabled style="opacity:0.4"':''}>💥 SHOOT ${myBullets===0?'<span style="font-size:0.85rem">(No Ammo!)</span>':'<span style="font-size:0.85rem;opacity:0.8">Fire!</span>'}</button></div>`:`<div style="text-align:center;padding:30px;color:#d4a574;background:rgba(0,0,0,0.2);border-radius:8px;border:1px dashed rgba(212,175,55,0.3)"><div style="font-size:2.5rem;margin-bottom:15px">⏳</div><div style="font-family:'Smokum',cursive;font-size:1.3rem">Waiting for ${g[oppRole]}...</div></div>`}
+<div class="round-log" style="margin-top:15px">
+${log.length>0?log.map(l=>`<div class="log-entry"><div style="font-weight:700;color:#d4af37;font-family:'Rye',cursive">Round ${l.r}</div><div style="margin:5px 0">${escapeHtml(g.p1)}: <strong>${l.p1}</strong> | ${escapeHtml(g.p2)}: <strong>${l.p2}</strong></div><div style="color:${l.w===0?'#d4a574':l.w===1?'#4CAF50':'#4CAF50'};font-weight:600">${l.w===0?'⚔️ TIE - Both survive':l.w===1?`🎉 ${escapeHtml(g.p1)} WINS the round!`:`🎉 ${escapeHtml(g.p2)} WINS the round!`}</div></div>`).reverse().join(''):'<div style="color:#666;text-align:center;padding:20px;font-style:italic">The duel begins...</div>'}
+</div>
+<button class="btn" onclick="leavePvP()" style="margin-top:15px;background:linear-gradient(135deg,#8b2f2f 0%,#5a1f1f 100%)">🚪 Leave Match</button></div>`);
+} catch(e) {
+    console.error('renderPvP error:', e);
+    alert('Render error: ' + e.message);
+}}
+
+async function submitAction(action){
+if(!game||!authReady)return;
+const an=['LOAD','DEFEND','SHOOT'];
+console.log('submitAction: Submitting', an[action]);
+try {
+    // Direct database write for action
+    const myUid = firebase.auth().currentUser.uid;
+    const gameRef = db.ref('games/' + game);
+    const snapshot = await gameRef.once('value');
+    const g = snapshot.val();
+
+    if (!g || g.status !== 'PLAYING') {
+        alert('Game not active.');
+        return;
+    }
+
+    const isP1 = g.p1_uid === myUid;
+    const isP2 = g.p2_uid === myUid;
+    if (!isP1 && !isP2) {
+        alert('Not a player in this game.');
+        return;
+    }
+
+    // Validate action
+    const myBullets = isP1 ? g.p1_bullets : g.p2_bullets;
+    if (action === 2 && myBullets === 0) {
+        alert('No bullets to shoot!');
+        return;
+    }
+
+    // Check if already submitted
+    const myActionField = isP1 ? 'p1_action' : 'p2_action';
+    if (g[myActionField] !== null) {
+        console.log('Already submitted action');
+        return;
+    }
+
+    // Submit action
+    const update = {};
+    update[myActionField] = action;
+    await gameRef.update(update);
+    console.log('submitAction: Submitted', an[action]);
+
+    // Check if both actions are now in and resolve
+    const updatedSnap = await gameRef.once('value');
+    const updatedGame = updatedSnap.val();
+    if (updatedGame.p1_action !== null && updatedGame.p2_action !== null) {
+        await resolveRound(gameRef, updatedGame);
+    }
+} catch(e) {
+    console.error('submitAction error:', e);
+    alert('Error submitting action: ' + e.message);
+}}
+
+// Client-side round resolution (validated by Firebase Rules)
+async function resolveRound(gameRef, g) {
+    console.log('resolveRound: Resolving round', g.round);
+    const winner = calcWinner(g.p1_action, g.p1_bullets, g.p2_action, g.p2_bullets);
+    const newP1Bullets = calculateNewBullets(g.p1_action, g.p1_bullets);
+    const newP2Bullets = calculateNewBullets(g.p2_action, g.p2_bullets);
+
+    const update = {
+        p1_bullets: newP1Bullets,
+        p2_bullets: newP2Bullets,
+        last_round: {
+            round: g.round,
+            p1_action: g.p1_action,
+            p2_action: g.p2_action,
+            winner: winner
+        }
+    };
+
+    if (winner === 1) {
+        update.status = 'FINISHED';
+        update.winner = g.p1;
+        update.winner_uid = g.p1_uid;
+    } else if (winner === 2) {
+        update.status = 'FINISHED';
+        update.winner = g.p2;
+        update.winner_uid = g.p2_uid;
+    } else if (g.round >= 12) {
+        update.status = 'FINISHED';
+        update.winner = 'draw';
+        update.winner_uid = null;
+    } else {
+        update.round = g.round + 1;
+        update.p1_action = null;
+        update.p2_action = null;
+    }
+
+    await gameRef.update(update);
+    console.log('resolveRound: Round resolved, winner:', winner);
+}
+
+// Sync local log from last_round data
+function handleRoundResult(g){
+    if(g.last_round && (!log.length || log[log.length-1].r !== g.last_round.round)){
+        const an=['LOAD','DEFEND','SHOOT'];
+        log.push({
+            r: g.last_round.round,
+            p1: an[g.last_round.p1_action],
+            p2: an[g.last_round.p2_action],
+            w: g.last_round.winner
+        });
+        console.log('handleRoundResult: Logged round', g.last_round.round);
+    }
+}
+
+function showEndScreen(g){
+if(gameRef){gameRef.off();gameRef=null;}
+const won=g.winner===user.username;
+const draw=g.winner==='draw';
+
+// Update stats
+if(!user.pvp)user.pvp={wins:0,losses:0,draws:0,games:0,streak:0,best_streak:0};
+user.pvp.games++;
+if(draw){user.pvp.draws++;user.pvp.streak=0;}
+else if(won){user.pvp.wins++;user.pvp.streak++;if(user.pvp.streak>user.pvp.best_streak)user.pvp.best_streak=user.pvp.streak;}
+else{user.pvp.losses++;user.pvp.streak=0;}
+checkPvPAch();sync();
+
+show(`<div class="card" style="text-align:center"><div style="font-size:3rem;margin:20px 0">${won?'🎉':draw?'🤝':'💀'}</div><h2 style="color:#d4af37;margin-bottom:20px">${won?'YOU WIN!':draw?'DRAW':'YOU LOSE'}</h2>
+<div style="color:#4CAF50;margin:15px 0">☁️ Stats synced!</div>
+<button class="btn" onclick="menu()">⬅️ Menu</button></div>`);}
+
+async function leavePvP(){
+if(gameRef){gameRef.off();gameRef=null;}
+// Try to delete the game if we created it and it's still waiting
+if(game && db){
+    try {
+        const myUid = firebase.auth().currentUser?.uid;
+        const snapshot = await db.ref('games/' + game).once('value');
+        const g = snapshot.val();
+        if (g && g.status === 'WAITING' && g.p1_uid === myUid) {
+            await db.ref('games/' + game).remove();
+            console.log('leavePvP: Deleted waiting game');
+        }
+    } catch(e) { /* ignore */ }
+}
+game=null;log=[];
+menu();}
+
+function copyID(id){if(navigator.clipboard){navigator.clipboard.writeText(id).then(()=>alert('✅ ID copied: '+id)).catch(()=>fallbackCopy(id));}else{fallbackCopy(id);}}
+function fallbackCopy(id){const t=document.createElement('textarea');t.value=id;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy');alert('✅ ID copied: '+id);}catch(e){alert('📋 Copy this ID: '+id);}document.body.removeChild(t);}
+
+// AI Game Functions
+function startAI(k){ai=AIs[k];game={id:Date.now(),p1:user.username,p2:ai.n,r:1,p1b:0,p2b:0,p1a:null,p2a:null,ai:k};log=[];playGame();}
+
+function playGame(){const g=game;const an=['LOAD','DEFEND','SHOOT'];
+if(g.p1a!==null&&g.p2a!==null){const w=calcWin(g.p1a,g.p1b,g.p2a,g.p2b);let nb1=g.p1b,nb2=g.p2b;
+if(g.p1a===0)nb1=Math.min(6,g.p1b+1);if(g.p1a===2&&g.p1b>0)nb1=g.p1b-1;if(g.p2a===0)nb2=Math.min(6,g.p2b+1);if(g.p2a===2&&g.p2b>0)nb2=g.p2b-1;
+log.push({r:g.r,p1:an[g.p1a],p2:an[g.p2a],w});
+if(w===1){g.p1b=nb1;g.p2b=nb2;endGame('win',g);return;}if(w===2){g.p1b=nb1;g.p2b=nb2;endGame('lose',g);return;}if(g.r>=12){endGame('draw',g);return;}
+g.p1b=nb1;g.p2b=nb2;g.p1a=null;g.p2a=null;g.r++;}
+const isHighNoon=g.r===12;
+show(`<div class="card">
+<div class="clock-display" style="display:block;text-align:center;margin-bottom:20px;padding:15px">
+    <div class="sun-container">
+        ${isHighNoon?svgSun():''}
+        ${svgClock(g.r)}
+        <span class="${isHighNoon?'high-noon':''}" style="margin-left:10px;font-size:${isHighNoon?'1.6rem':'1.3rem'};vertical-align:middle;color:#d4af37;font-family:'Rye',cursive">
+            ${isHighNoon?'HIGH NOON':g.r+':00'}
+        </span>
+        ${isHighNoon?' 🔥':''}
+    </div>
+</div>
+<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:20px">
+<div class="player-card you" style="flex:1;display:flex;align-items:center;gap:10px">
+    ${svgOutlaw('right', true, 45)}
+    <div>
+        <div class="player-name">${escapeHtml(g.p1)}</div>
+        <div style="display:flex;align-items:center;gap:5px">${svgRevolver(g.p1b)} ${svgBullets(g.p1b)}</div>
+    </div>
+</div>
+<div class="player-card" style="flex:1;display:flex;align-items:center;gap:10px;flex-direction:row-reverse">
+    ${svgOutlaw('left', false, 45)}
+    <div style="text-align:right">
+        <div class="player-name">${ai.i} ${g.p2}</div>
+        <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">${svgBullets(g.p2b)} ${svgRevolver(g.p2b)}</div>
+    </div>
+</div></div>
+${g.p1a===null?`<div class="action-panel"><h3 style="text-align:center;color:#f4e8d0;margin:10px 0 15px;font-family:'Smokum',cursive;font-size:1.4rem">Make Your Move</h3>
+<button class="btn btn-action" onclick="move(0)">🔫 LOAD <span style="font-size:0.85rem;opacity:0.8">+1 Bullet</span></button>
+<button class="btn btn-action" onclick="move(1)">🛡️ DEFEND <span style="font-size:0.85rem;opacity:0.8">Block Shot</span></button>
+<button class="btn btn-action" onclick="move(2)" ${g.p1b===0?'disabled style="opacity:0.4"':''}>💥 SHOOT ${g.p1b===0?'<span style="font-size:0.85rem">(No Ammo!)</span>':'<span style="font-size:0.85rem;opacity:0.8">Fire!</span>'}</button></div>`:`<div style="text-align:center;padding:30px;color:#d4a574;background:rgba(0,0,0,0.2);border-radius:8px;border:1px dashed rgba(212,175,55,0.3)"><div style="font-size:2.5rem;margin-bottom:15px">🤔</div><div style="font-family:'Smokum',cursive;font-size:1.3rem">${ai.n} is thinking...</div></div>`}
+<div class="round-log" style="margin-top:15px">
+${log.length>0?log.map(l=>`<div class="log-entry"><div style="font-weight:700;color:#d4af37;font-family:'Rye',cursive">Round ${l.r}</div><div style="margin:5px 0">${escapeHtml(g.p1)}: <strong>${l.p1}</strong> | ${escapeHtml(g.p2)}: <strong>${l.p2}</strong></div><div style="color:${l.w===0?'#d4a574':l.w===1?'#4CAF50':'#e74c3c'};font-weight:600">${l.w===0?'⚔️ TIE - Both survive':l.w===1?'🎉 YOU WIN the round!':'💀 AI WINS the round!'}</div></div>`).reverse().join(''):'<div style="color:#666;text-align:center;padding:20px;font-style:italic">The duel begins...</div>'}
+</div>
+<button class="btn" onclick="menu()" style="margin-top:15px;background:linear-gradient(135deg,#8b2f2f 0%,#5a1f1f 100%)">🚪 Leave Match</button></div>`);}
+
+function move(a){
+    if(game.p1a!==null)return;
+    game.p1a=a;
+    setTimeout(()=>{
+        const aia=ai.a(game.p2b,game.p1b,game.r);
+        ai.m(a);
+        game.p2a=aia;
+        // Calculate winner before showing animation
+        const w=calcWin(game.p1a,game.p1b,game.p2a,game.p2b);
+        showShowdown(game.p1, game.p2, game.p1a, game.p2a, w, ()=>{
+            playGame();
+        });
+    },500);
+}
+
+function calcWin(p1a,p1b,p2a,p2b){
+if(p1a===2&&p1b>0&&p2a===0)return 1;
+if(p2a===2&&p2b>0&&p1a===0)return 2;
+if(p1a===2&&p1b===0)return 2;
+if(p2a===2&&p2b===0)return 1;
+return 0;}
+
+async function endGame(r,g){const opp=g.p2;if(!user.ai_stats[opp])user.ai_stats[opp]={w:0,l:0,st:0,bs:0};
+if(r==='win'){user.ai_stats[opp].w++;user.ai_stats[opp].st++;if(user.ai_stats[opp].st>user.ai_stats[opp].bs)user.ai_stats[opp].bs=user.ai_stats[opp].st;
+if(!user.total_wins)user.total_wins=0;user.total_wins++;
+await checkAllAch(opp,g.r,g.p1b);}else{user.ai_stats[opp].l++;user.ai_stats[opp].st=0;}
+await sync();
+show(`<div class="card" style="text-align:center"><div style="font-size:3rem;margin:20px 0">${r==='win'?'🎉':r==='lose'?'💀':'🤝'}</div><h2 style="color:#d4af37;margin-bottom:20px">${r==='win'?'YOU WIN!':r==='lose'?'YOU LOSE':'DRAW'}</h2>
+<div style="color:#4CAF50;margin:15px 0">☁️ Stats synced to cloud!</div>
+<button class="btn btn-primary" onclick="startAI('${g.ai}')">↻ Play Again</button>
+<button class="btn" onclick="menu()">⬅️ Menu</button></div>`);}
+
+// Achievements
+async function checkAllAch(opp,rounds,bullets){const a=user.achievements||[];const n=[];
+const oppMap={'Rookie':'grad','Quick Draw':'qd','Sheriff':'lo','Mad Dog':'cm','Gunslinger':'ss','Natural':'ns'};
+if(oppMap[opp]&&!a.includes(oppMap[opp]))n.push(oppMap[opp]);
+const allBeaten=Object.keys(user.ai_stats||{}).length===6&&Object.values(user.ai_stats).every(v=>v.w>0);
+if(allBeaten&&!a.includes('sg'))n.push('sg');
+const maxStreak=Math.max(...Object.values(user.ai_stats||{}).map(v=>v.bs||0));
+if(maxStreak>=10&&!a.includes('hs'))n.push('hs');
+if(maxStreak>=20&&!a.includes('ic'))n.push('ic');
+if(rounds<=3&&!a.includes('lr'))n.push('lr');
+const tw=Object.values(user.ai_stats||{}).reduce((acc,v)=>acc+(v.w||0),0);
+if(tw>=100&&!a.includes('mk'))n.push('mk');
+if(tw>=500&&!a.includes('dom'))n.push('dom');
+if((user.ai_stats['Natural']?.w||0)>=10&&!a.includes('nk'))n.push('nk');
+if(n.length>0){user.achievements=[...a,...n];await sync();for(const k of n)await showAchDelayed(k);}}
+
+function checkPvPAch(){const a=user.achievements||[];const n=[];
+if(user.pvp.wins===1&&!a.includes('fb'))n.push('fb');
+if(user.pvp.games>=10&&!a.includes('du'))n.push('du');
+if(user.pvp.games>=100&&!a.includes('ve'))n.push('ve');
+if(user.pvp.wins>=100&&!a.includes('ct'))n.push('ct');
+if(n.length>0){user.achievements=[...a,...n];for(const k of n)showAchDelayed(k);}}
+
+function showAchDelayed(k){return new Promise(resolve=>{currentAchQueue.push(k);if(currentAchQueue.length===1)processAchQueue();resolve();});}
+
+function processAchQueue(){if(currentAchQueue.length===0)return;const k=currentAchQueue[0];const ach=ACH[k];if(!ach){currentAchQueue.shift();processAchQueue();return;}
+document.getElementById('popupIcon').textContent=ach.i;document.getElementById('popupName').textContent=ach.n;document.getElementById('popupDesc').textContent=ach.d;document.getElementById('achievementPopup').classList.add('show');}
+
+function closeAchievement(){document.getElementById('achievementPopup').classList.remove('show');currentAchQueue.shift();setTimeout(()=>processAchQueue(),500);}
+
+// Showdown animation for round resolution
+const actionNames = ['LOAD', 'DEFEND', 'SHOOT'];
+const actionEmojis = ['🔫', '🛡️', '💥'];
+
+function showShowdown(p1Name, p2Name, p1Action, p2Action, winner, callback){
+    const overlay = document.getElementById('showdownOverlay');
+    const p1Class = winner === 1 ? 'winner' : (winner === 2 ? 'loser' : '');
+    const p2Class = winner === 2 ? 'winner' : (winner === 1 ? 'loser' : '');
+    const safeP1 = escapeHtml(p1Name);
+    const safeP2 = escapeHtml(p2Name);
+    const resultText = winner === 0 ? '⚔️ TIE!' : (winner === 1 ? `🎉 ${safeP1} WINS!` : `🎉 ${safeP2} WINS!`);
+    const resultColor = winner === 0 ? '#d4a574' : '#4CAF50';
+
+    overlay.innerHTML = `
+        <div class="showdown-title fade-slide-in">⚡ SHOWDOWN ⚡</div>
+        <div class="showdown-cards">
+            <div class="showdown-card ${p1Class} ${p1Action === 2 ? 'shoot-flash' : ''} ${winner === 2 ? 'hit-shake' : ''}" style="animation-delay:0.2s">
+                <div style="color:#d4af37;font-family:'Rye',cursive;font-size:0.9rem">${safeP1}</div>
+                <div class="showdown-action action-reveal">${actionEmojis[p1Action]}</div>
+                <div style="color:#d4a574">${actionNames[p1Action]}</div>
+            </div>
+            <div style="font-size:2rem;color:#d4af37;align-self:center">VS</div>
+            <div class="showdown-card ${p2Class} ${p2Action === 2 ? 'shoot-flash' : ''} ${winner === 1 ? 'hit-shake' : ''}" style="animation-delay:0.3s">
+                <div style="color:#d4af37;font-family:'Rye',cursive;font-size:0.9rem">${safeP2}</div>
+                <div class="showdown-action action-reveal">${actionEmojis[p2Action]}</div>
+                <div style="color:#d4a574">${actionNames[p2Action]}</div>
+            </div>
+        </div>
+        <div class="showdown-result fade-slide-in" style="color:${resultColor};animation-delay:0.5s">${resultText}</div>
+    `;
+    overlay.style.display = 'flex';
+
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        if(callback) callback();
+    }, 1800);
+}
+
+// Initialize title with SVG revolvers
+function initTitle(){
+    const titleEl = document.getElementById('gameTitle');
+    if(titleEl){
+        titleEl.innerHTML = `${svgTitleRevolver(true)} WILD WEST SHOOTOUT ${svgTitleRevolver(false)}`;
+    }
+}
+
+// Auto-login
+const saved=localStorage.getItem(S);if(saved){const {un,pw}=JSON.parse(saved);window.addEventListener('DOMContentLoaded',()=>{initTitle();show(loginScreen());document.getElementById('usernameInput').value=un;document.getElementById('passwordInput').value=pw;});}else{window.addEventListener('DOMContentLoaded',()=>{initTitle();show(loginScreen());});}
+    </script>
+</body>
+</html>
