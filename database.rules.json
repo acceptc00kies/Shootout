@@ -1,8 +1,9 @@
 {
   "rules": {
     "games": {
+      ".read": true,
+      ".indexOn": ["status", "created"],
       "$gameId": {
-        ".read": true,
         ".write": "auth != null && (!data.exists() || data.child('p1_uid').val() == auth.uid || data.child('p2_uid').val() == auth.uid || (data.child('p2_uid').val() == null && newData.child('p2_uid').val() == auth.uid))",
         "p1": {
           ".validate": "newData.isString()"
