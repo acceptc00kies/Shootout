@@ -1,6 +1,7 @@
 """
 Wild West Shootout - Stats API Backend
-Secure Flask server with authentication, rate limiting, and CORS protection
+Secure Flask server with authentication, rate limiting, CORS protection,
+single-session enforcement, and delta stats synchronization.
 """
 
 from flask import Flask, request, jsonify
@@ -12,6 +13,7 @@ import os
 import bcrypt
 import hashlib
 import secrets
+import threading
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
@@ -33,27 +35,57 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# Session management (in-memory)
+# Session management (in-memory, single-session per user)
 active_sessions = {}
 SESSION_DURATION = timedelta(hours=24)
 DATA_FILE = 'data.json'
 
+# Thread lock for file operations
+data_lock = threading.Lock()
+
 # ============================================================================
-# HELPERS
+# HELPERS - Thread-Safe File Operations
 # ============================================================================
 
 def load_data():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            pass
-    return {'users': {}, 'created': datetime.now().isoformat()}
+    """Thread-safe data loading"""
+    with data_lock:
+        if os.path.exists(DATA_FILE):
+            try:
+                with open(DATA_FILE, 'r') as f:
+                    return json.load(f)
+            except:
+                pass
+        return {'users': {}, 'created': datetime.now().isoformat()}
 
 def save_data(data):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
+    """Thread-safe data saving"""
+    with data_lock:
+        with open(DATA_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+
+def atomic_update(update_fn):
+    """Execute a function with exclusive file access"""
+    with data_lock:
+        if os.path.exists(DATA_FILE):
+            try:
+                with open(DATA_FILE, 'r') as f:
+                    data = json.load(f)
+            except:
+                data = {'users': {}, 'created': datetime.now().isoformat()}
+        else:
+            data = {'users': {}, 'created': datetime.now().isoformat()}
+
+        result = update_fn(data)
+
+        with open(DATA_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+
+        return result
+
+# ============================================================================
+# HELPERS - Password
+# ============================================================================
 
 def hash_password(password):
     """Secure bcrypt hashing"""
@@ -61,10 +93,8 @@ def hash_password(password):
 
 def verify_password(password, stored_hash):
     """Verify password - supports SHA256 migration"""
-    # Legacy SHA256 hash (64 hex chars)
     if len(stored_hash) == 64 and all(c in '0123456789abcdef' for c in stored_hash):
         return hashlib.sha256(password.encode()).hexdigest() == stored_hash
-    # bcrypt
     try:
         return bcrypt.checkpw(password.encode(), stored_hash.encode())
     except:
@@ -74,8 +104,19 @@ def is_legacy_hash(stored_hash):
     """Check if using old SHA256"""
     return len(stored_hash) == 64 and all(c in '0123456789abcdef' for c in stored_hash)
 
+# ============================================================================
+# HELPERS - Session (Single-Session Enforcement)
+# ============================================================================
+
 def create_session(username):
-    """Generate session token"""
+    """Create session, invalidating any existing sessions for this user"""
+    # SINGLE SESSION ENFORCEMENT: Remove all existing sessions for this user
+    tokens_to_remove = [t for t, s in active_sessions.items()
+                        if s['username'].lower() == username.lower()]
+    for t in tokens_to_remove:
+        del active_sessions[t]
+
+    # Create new session
     token = secrets.token_urlsafe(32)
     active_sessions[token] = {
         'username': username,
@@ -96,6 +137,13 @@ def get_auth_user():
         return None
     return session['username']
 
+def find_user(data, username):
+    """Find user case-insensitively, return (actual_username, user_dict) or (None, None)"""
+    for u in data['users'].keys():
+        if u.lower() == username.lower():
+            return u, data['users'][u]
+    return None, None
+
 # ============================================================================
 # AUTH ENDPOINTS
 # ============================================================================
@@ -113,20 +161,25 @@ def register():
         if len(username) < 2 or len(username) > 15:
             return jsonify({'error': 'Username must be 2-15 characters'}), 400
 
-        data = load_data()
-        if username.lower() in [u.lower() for u in data['users'].keys()]:
-            return jsonify({'error': 'Username already exists'}), 400
+        def do_register(data):
+            if username.lower() in [u.lower() for u in data['users'].keys()]:
+                return {'error': 'Username already exists'}
 
-        data['users'][username] = {
-            'password': hash_password(password),
-            'created': datetime.now().isoformat(),
-            'ai_stats': {},
-            'pvp_wins': 0, 'pvp_losses': 0, 'pvp_draws': 0,
-            'pvp_games': 0, 'pvp_streak': 0, 'pvp_best_streak': 0,
-            'total_wagered': 0, 'achievements': [],
-            'total_wins': 0, 'total_draws': 0
-        }
-        save_data(data)
+            data['users'][username] = {
+                'password': hash_password(password),
+                'created': datetime.now().isoformat(),
+                'ai_stats': {},
+                'pvp_wins': 0, 'pvp_losses': 0, 'pvp_draws': 0,
+                'pvp_games': 0, 'pvp_streak': 0, 'pvp_best_streak': 0,
+                'total_wagered': 0, 'achievements': [],
+                'total_wins': 0, 'total_draws': 0
+            }
+            return {'success': True}
+
+        result = atomic_update(do_register)
+
+        if 'error' in result:
+            return jsonify(result), 400
 
         token = create_session(username)
         return jsonify({'success': True, 'token': token, 'username': username})
@@ -146,28 +199,24 @@ def login():
             return jsonify({'error': 'Username and password required'}), 400
 
         data = load_data()
-
-        # Find user (case-insensitive)
-        actual_username = None
-        for u in data['users'].keys():
-            if u.lower() == username.lower():
-                actual_username = u
-                break
+        actual_username, user = find_user(data, username)
 
         if not actual_username:
             return jsonify({'error': 'User not found'}), 404
-
-        user = data['users'][actual_username]
 
         if not verify_password(password, user['password']):
             return jsonify({'error': 'Invalid password'}), 401
 
         # Migrate legacy SHA256 to bcrypt
         if is_legacy_hash(user['password']):
-            user['password'] = hash_password(password)
-            user['password_migrated'] = datetime.now().isoformat()
-            save_data(data)
+            def migrate(d):
+                _, u = find_user(d, username)
+                if u:
+                    u['password'] = hash_password(password)
+                    u['password_migrated'] = datetime.now().isoformat()
+            atomic_update(migrate)
 
+        # Single-session: this invalidates any existing sessions
         token = create_session(actual_username)
         return jsonify({'success': True, 'token': token, 'username': actual_username})
 
@@ -190,16 +239,11 @@ def logout():
 def get_stats(username):
     try:
         data = load_data()
-        actual_username = None
-        for u in data['users'].keys():
-            if u.lower() == username.lower():
-                actual_username = u
-                break
+        actual_username, user = find_user(data, username)
 
         if not actual_username:
             return jsonify({'error': 'User not found'}), 404
 
-        user = data['users'][actual_username]
         return jsonify({
             'username': actual_username,
             'ai_stats': user.get('ai_stats', {}),
@@ -229,29 +273,67 @@ def save_stats(username):
             return jsonify({'error': 'Cannot modify other users'}), 403
 
         body = request.get_json()
-        data = load_data()
+        mode = body.get('mode', 'overwrite')  # 'overwrite' or 'delta'
 
-        actual_username = None
-        for u in data['users'].keys():
-            if u.lower() == username.lower():
-                actual_username = u
-                break
+        def do_update(data):
+            actual_username, user = find_user(data, username)
+            if not actual_username:
+                return {'error': 'User not found'}
 
-        if not actual_username:
-            return jsonify({'error': 'User not found'}), 404
+            if mode == 'delta':
+                # DELTA MODE: Atomic increments (safe for concurrent sessions)
 
-        user = data['users'][actual_username]
+                # Numeric field increments
+                delta_fields = ['pvp_wins', 'pvp_losses', 'pvp_draws', 'pvp_games',
+                                'total_wagered', 'total_wins', 'total_draws']
+                for field in delta_fields:
+                    delta_key = f'{field}_delta'
+                    if delta_key in body:
+                        user[field] = user.get(field, 0) + body[delta_key]
 
-        # Update allowed fields only
-        for field in ['ai_stats', 'pvp_wins', 'pvp_losses', 'pvp_draws',
-                      'pvp_games', 'pvp_streak', 'pvp_best_streak',
-                      'total_wagered', 'achievements', 'total_wins', 'total_draws']:
-            if field in body:
-                user[field] = body[field]
+                # AI stats deltas (nested structure)
+                if 'ai_stats_delta' in body:
+                    if 'ai_stats' not in user:
+                        user['ai_stats'] = {}
+                    for opponent, deltas in body['ai_stats_delta'].items():
+                        if opponent not in user['ai_stats']:
+                            user['ai_stats'][opponent] = {'w': 0, 'l': 0, 'd': 0}
+                        for stat, delta in deltas.items():
+                            user['ai_stats'][opponent][stat] = user['ai_stats'][opponent].get(stat, 0) + delta
 
-        user['last_updated'] = datetime.now().isoformat()
-        save_data(data)
-        return jsonify({'success': True})
+                # Achievements: merge without duplicates
+                if 'new_achievements' in body:
+                    existing = set(user.get('achievements', []))
+                    for ach in body['new_achievements']:
+                        if ach not in existing:
+                            user.setdefault('achievements', []).append(ach)
+
+                # Streak: take current value
+                if 'pvp_streak' in body:
+                    user['pvp_streak'] = body['pvp_streak']
+
+                # Best streak: take max
+                if 'pvp_best_streak' in body:
+                    user['pvp_best_streak'] = max(user.get('pvp_best_streak', 0), body['pvp_best_streak'])
+
+            else:
+                # OVERWRITE MODE: Legacy full-state sync
+                overwrite_fields = ['ai_stats', 'pvp_wins', 'pvp_losses', 'pvp_draws',
+                                    'pvp_games', 'pvp_streak', 'pvp_best_streak',
+                                    'total_wagered', 'achievements', 'total_wins', 'total_draws']
+                for field in overwrite_fields:
+                    if field in body:
+                        user[field] = body[field]
+
+            user['last_updated'] = datetime.now().isoformat()
+            return {'success': True}
+
+        result = atomic_update(do_update)
+
+        if 'error' in result:
+            return jsonify(result), 404
+
+        return jsonify(result)
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -297,14 +379,14 @@ def pvp_leaderboard():
 
 @app.route('/', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.0.0'})
+    return jsonify({'status': 'ok', 'service': 'Wild West Shootout API', 'version': '2.1.0'})
 
 @app.route('/api', methods=['GET'])
 def api_info():
     return jsonify({
         'status': 'ok',
-        'version': '2.0.0',
-        'security': ['bcrypt', 'rate-limiting', 'cors-restricted', 'token-auth']
+        'version': '2.1.0',
+        'security': ['bcrypt', 'rate-limiting', 'cors-restricted', 'token-auth', 'single-session', 'delta-sync']
     })
 
 if __name__ == '__main__':

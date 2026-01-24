@@ -731,8 +731,45 @@ function loginScreen(){return`<div class="card"><h2 style="text-align:center;col
 <button class="btn btn-primary" onclick="doLogin()">🎯 Enter Saloon</button>
 <div style="text-align:center;color:#d4a574;font-size:0.9rem;margin-top:15px">☁️ Cloud Sync • 🔥 Firebase Realtime PvP</div></div>`;}
 
-// Sync stats to cloud
+// Sync stats to cloud (full state - used on login)
 async function sync(){if(!user)return;await api('/api/stats/'+user.username,'POST',{ai_stats:user.ai_stats||{},pvp_wins:user.pvp?.wins||0,pvp_losses:user.pvp?.losses||0,pvp_draws:user.pvp?.draws||0,pvp_games:user.pvp?.games||0,pvp_streak:user.pvp?.streak||0,pvp_best_streak:user.pvp?.best_streak||0,total_wagered:user.total_wagered||0,achievements:user.achievements||[],total_wins:user.total_wins||0,total_draws:user.total_draws||0});}
+
+// Delta sync for AI games (atomic increment)
+async function syncAIDelta(opp, won, drew) {
+    if (!user) return;
+    const delta = { mode: 'delta', ai_stats_delta: {} };
+    if (drew) {
+        delta.total_draws_delta = 1;
+    } else {
+        delta.ai_stats_delta[opp] = won ? {w: 1} : {l: 1};
+        if (won) delta.total_wins_delta = 1;
+    }
+    await api('/api/stats/' + user.username, 'POST', delta);
+}
+
+// Delta sync for PvP games (atomic increment)
+async function syncPvPDelta(result, streak, bestStreak) {
+    if (!user) return;
+    const delta = {
+        mode: 'delta',
+        pvp_games_delta: 1,
+        pvp_streak: streak,
+        pvp_best_streak: bestStreak
+    };
+    if (result === 'win') delta.pvp_wins_delta = 1;
+    else if (result === 'loss') delta.pvp_losses_delta = 1;
+    else delta.pvp_draws_delta = 1;
+    await api('/api/stats/' + user.username, 'POST', delta);
+}
+
+// Delta sync for new achievements
+async function syncNewAchievements(newAchs) {
+    if (!user || !newAchs.length) return;
+    await api('/api/stats/' + user.username, 'POST', {
+        mode: 'delta',
+        new_achievements: newAchs
+    });
+}
 
 // UI Functions
 function show(h){document.getElementById('content').innerHTML=h;}
@@ -1189,7 +1226,10 @@ user.pvp.games++;
 if(draw){user.pvp.draws++;user.pvp.streak=0;}
 else if(won){user.pvp.wins++;user.pvp.streak++;if(user.pvp.streak>user.pvp.best_streak)user.pvp.best_streak=user.pvp.streak;}
 else{user.pvp.losses++;user.pvp.streak=0;}
-checkPvPAch();sync();
+const newPvPAchs=checkPvPAch();
+const pvpResult=won?'win':(draw?'draw':'loss');
+syncPvPDelta(pvpResult,user.pvp.streak,user.pvp.best_streak);
+if(newPvPAchs.length>0)syncNewAchievements(newPvPAchs);
 
 show(`<div class="card" style="text-align:center"><div style="font-size:3rem;margin:20px 0">${won?'🎉':draw?'🤝':'💀'}</div><h2 style="color:#d4af37;margin-bottom:20px">${won?'YOU WIN!':draw?'DRAW':'YOU LOSE'}</h2>
 <div style="color:#4CAF50;margin:15px 0">☁️ Stats synced!</div>
@@ -1283,10 +1323,11 @@ if(p2a===2&&p2b===0)return 1;
 return 0;}
 
 async function endGame(r,g){const opp=g.p2;if(!user.ai_stats[opp])user.ai_stats[opp]={w:0,l:0,st:0,bs:0};
-if(r==='win'){user.ai_stats[opp].w++;user.ai_stats[opp].st++;if(user.ai_stats[opp].st>user.ai_stats[opp].bs)user.ai_stats[opp].bs=user.ai_stats[opp].st;
+const isDraw=r==='draw';const isWin=r==='win';
+if(isWin){user.ai_stats[opp].w++;user.ai_stats[opp].st++;if(user.ai_stats[opp].st>user.ai_stats[opp].bs)user.ai_stats[opp].bs=user.ai_stats[opp].st;
 if(!user.total_wins)user.total_wins=0;user.total_wins++;
-await checkAllAch(opp,g.r,g.p1b);}else{user.ai_stats[opp].l++;user.ai_stats[opp].st=0;}
-await sync();
+await checkAllAch(opp,g.r,g.p1b);}else if(isDraw){if(!user.total_draws)user.total_draws=0;user.total_draws++;}else{user.ai_stats[opp].l++;user.ai_stats[opp].st=0;}
+await syncAIDelta(opp, isWin, isDraw);
 show(`<div class="card" style="text-align:center"><div style="font-size:3rem;margin:20px 0">${r==='win'?'🎉':r==='lose'?'💀':'🤝'}</div><h2 style="color:#d4af37;margin-bottom:20px">${r==='win'?'YOU WIN!':r==='lose'?'YOU LOSE':'DRAW'}</h2>
 <div style="color:#4CAF50;margin:15px 0">☁️ Stats synced to cloud!</div>
 <button class="btn btn-primary" onclick="startAI('${g.ai}')">↻ Play Again</button>
@@ -1306,14 +1347,15 @@ const tw=Object.values(user.ai_stats||{}).reduce((acc,v)=>acc+(v.w||0),0);
 if(tw>=100&&!a.includes('mk'))n.push('mk');
 if(tw>=500&&!a.includes('dom'))n.push('dom');
 if((user.ai_stats['Natural']?.w||0)>=10&&!a.includes('nk'))n.push('nk');
-if(n.length>0){user.achievements=[...a,...n];await sync();for(const k of n)await showAchDelayed(k);}}
+if(n.length>0){user.achievements=[...a,...n];await syncNewAchievements(n);for(const k of n)await showAchDelayed(k);}}
 
 function checkPvPAch(){const a=user.achievements||[];const n=[];
 if(user.pvp.wins===1&&!a.includes('fb'))n.push('fb');
 if(user.pvp.games>=10&&!a.includes('du'))n.push('du');
 if(user.pvp.games>=100&&!a.includes('ve'))n.push('ve');
 if(user.pvp.wins>=100&&!a.includes('ct'))n.push('ct');
-if(n.length>0){user.achievements=[...a,...n];for(const k of n)showAchDelayed(k);}}
+if(n.length>0){user.achievements=[...a,...n];for(const k of n)showAchDelayed(k);}
+return n;}
 
 function showAchDelayed(k){return new Promise(resolve=>{currentAchQueue.push(k);if(currentAchQueue.length===1)processAchQueue();resolve();});}
 
