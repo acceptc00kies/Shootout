@@ -935,22 +935,19 @@ if(gameRef){
 }
 // Set up realtime listener
 gameRef=db.ref('games/'+gid);
-gameRef.on('value', async (snapshot)=>{
+gameRef.on('value', (snapshot)=>{
     const g=snapshot.val();
     console.log('listenToGame: Game update received', g?.status, 'Round:', g?.round);
     if(!g){console.log('listenToGame: Game deleted, leaving');leavePvP();return;}
 
     // Check if we need to resolve the round (only p1 does this to prevent race conditions)
+    // Fire-and-forget async resolution - keep callback synchronous for Firebase compatibility
     if (g.status === 'PLAYING' && g.p1_action !== null && g.p2_action !== null && !isResolving) {
         const myUid = firebase.auth().currentUser?.uid;
         if (myUid && g.p1_uid === myUid) {
             console.log('listenToGame: Both actions in, p1 resolving round');
             isResolving = true;
-            try {
-                await resolveRound(gameRef, g);
-            } finally {
-                isResolving = false;
-            }
+            resolveRound(gameRef, g).finally(() => { isResolving = false; });
             return; // Don't render yet, wait for next update after resolution
         }
     }
