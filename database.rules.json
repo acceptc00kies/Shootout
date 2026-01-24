@@ -19,7 +19,7 @@
           ".validate": "newData.val() === null || (newData.isString() && newData.val().length >= 2 && newData.val().length <= 15)"
         },
         "p2_uid": {
-          ".validate": "newData.val() === null || (!data.exists() && data.parent().child('p1_uid').val() !== auth.uid && newData.val() === auth.uid) || newData.val() === data.val()"
+          ".validate": "newData.val() === null || (!data.exists() && newData.parent().child('p1_uid').val() !== auth.uid && newData.val() === auth.uid) || newData.val() === data.val()"
         },
         "bet": {
           ".validate": "newData.isNumber() && newData.val() >= 0.01 && newData.val() <= 1000"
@@ -34,10 +34,10 @@
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6"
         },
         "p1_action": {
-          ".validate": "(newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)) && (data.parent().child('p1_uid').val() === auth.uid || data.parent().child('p2_uid').val() === auth.uid)"
+          ".validate": "(newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)) && (newData.parent().child('p1_uid').val() === auth.uid || newData.parent().child('p2_uid').val() === auth.uid)"
         },
         "p2_action": {
-          ".validate": "(newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)) && (data.parent().child('p1_uid').val() === auth.uid || data.parent().child('p2_uid').val() === auth.uid)"
+          ".validate": "(newData.val() === null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2)) && (newData.parent().child('p1_uid').val() === auth.uid || newData.parent().child('p2_uid').val() === auth.uid)"
         },
         "status": {
           ".validate": "newData.val() === 'WAITING' || newData.val() === 'PLAYING' || newData.val() === 'FINISHED'"
